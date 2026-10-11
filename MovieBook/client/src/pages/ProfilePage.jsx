@@ -5,7 +5,7 @@ import formStyles from "./formStyles";
 export default function ProfilePage() {
   return (
     <main style={{ ...formStyles.page, flex: 1, display: "flex" }}>
-      <Profile name="Original" email="originalemail@gmail.com" age={44} />
+      <Profile name="Romanos Georgios" email="georgerom1999@gmail.com" age={27} />
     </main>
   );
 }
