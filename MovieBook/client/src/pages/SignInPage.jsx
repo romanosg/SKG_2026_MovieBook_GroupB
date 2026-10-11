@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import formStyles from "./formStyles";
+import { isValidEmail, isValidPassword } from "../utils/validation";
 
 const styles = {
   forgotRow: { display: "flex", justifyContent: "flex-end" },
@@ -14,27 +16,41 @@ const styles = {
 };
 
 export default function SignInPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // TODO: send { email, password } to your backend
+
+    // Empty or not meeting the sign-up criteria: clear both fields
+    if (!isValidEmail(email) || !isValidPassword(password)) {
+      setEmail("");
+      setPassword("");
+      setError("Sign in information set up incorrectly. Please try again!");
+      return;
+    }
+
+    // TODO: check { email, password } against your backend
     console.log("Sign in:", { email, password });
+    navigate("/"); // go to the homepage
   };
 
   return (
     <main style={formStyles.page}>
       <h1 style={formStyles.authTitle}>Sign in</h1>
-      <form style={formStyles.authForm} onSubmit={handleSubmit}>
+      <form style={formStyles.authForm} onSubmit={handleSubmit} noValidate>
         <label style={formStyles.label}>
           Email
           <input
             style={formStyles.input}
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError("");
+            }}
           />
         </label>
         <label style={formStyles.label}>
@@ -43,10 +59,15 @@ export default function SignInPage() {
             style={formStyles.input}
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError("");
+            }}
           />
         </label>
+
+        {error && <span style={formStyles.error}>{error}</span>}
+
         <button style={formStyles.button} type="submit">
           Sign in
         </button>

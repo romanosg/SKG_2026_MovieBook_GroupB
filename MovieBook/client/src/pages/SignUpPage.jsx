@@ -1,5 +1,9 @@
 import React, { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import formStyles from "./formStyles";
+import { isValidEmail, getPasswordRules, isValidPassword } from "../utils/validation";
+
+const COLORS = { neutral: "#4a4a4a", red: "#e5534b", green: "#3fb950", gray: "#9a9a9a" };
 
 const styles = {
   dateRow: {
@@ -9,7 +13,21 @@ const styles = {
     gap: 8,
   },
   dateInput: { ...formStyles.input, textAlign: "center", padding: "10px 4px" },
-  slash: { fontSize: 18, color: "#9a9a9a" },
+  slash: { fontSize: 18, color: COLORS.gray },
+  inputWrap: { position: "relative" },
+  toggle: {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "none",
+    border: "none",
+    padding: 0,
+    color: "#8ab4f8",
+    fontSize: 12,
+    cursor: "pointer",
+  },
+  rules: { listStyle: "none", margin: 0, padding: 0, fontSize: 12 },
 };
 
 // Checks day/month/year form a real date that isn't in the future
@@ -26,15 +44,16 @@ const isValidBirthdate = (day, month, year) => {
   return isRealDate && y >= 1900 && date <= new Date();
 };
 
-const isValidPassword = (value) => value.length >= 7 && /[A-Z]/.test(value);
-
 export default function SignUpPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState({});
 
   const dayRef = useRef(null);
@@ -53,19 +72,40 @@ export default function SignUpPage() {
     if (e.key === "Backspace" && value === "") prevRef?.current?.focus();
   };
 
+  // Password field colours
+  const rules = getPasswordRules(password);
+  const passwordIsValid = rules.every((r) => r.met);
+  const passwordBorder =
+    password === ""
+      ? COLORS.neutral
+      : passwordIsValid
+      ? COLORS.green
+      : COLORS.red;
+  const passwordStyle = {
+    ...formStyles.input,
+    paddingRight: 56,
+    borderColor: passwordBorder,
+  };
+  const confirmStyle = { ...formStyles.input, paddingRight: 56 };
+
+  // Unmet rules are gray on an untouched form, red once there is a problem
+  const showUnmetInRed = password !== "" || Boolean(errors.password);
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
     const newErrors = {};
+    if (!isValidEmail(email)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
     if (!isValidBirthdate(day, month, year)) {
       newErrors.birthdate = "Enter a valid date as DD / MM / YYYY.";
     }
     if (!isValidPassword(password)) {
-      newErrors.password =
-        "Password must be at least 7 characters and include 1 capital letter.";
-    }
-    if (confirmPassword !== password) {
-      newErrors.confirmPassword = "Passwords do not match.";
+      newErrors.password = "Password does not meet the requirements.";
+    } else if (confirmPassword !== password) {
+      newErrors.confirmPassword = "Passwords do not match!";
+      setConfirmPassword(""); // cleared even if other fields have errors
     }
 
     setErrors(newErrors);
@@ -74,21 +114,45 @@ export default function SignUpPage() {
     const birthdate = `${day}/${month}/${year}`;
     // TODO: send { email, birthdate, password } to your backend
     console.log("Sign up:", { email, birthdate, password });
+    navigate("/"); // go to the homepage
   };
 
   return (
     <main style={formStyles.page}>
+      {/* Hides the browser's built-in "reveal password" icon (Edge) */}
+      <style>{`
+        .pw-input::-ms-reveal,
+        .pw-input::-ms-clear {
+          display: none;
+        }
+      `}</style>
       <h1 style={formStyles.authTitle}>Sign up</h1>
       <form style={formStyles.authForm} onSubmit={handleSubmit} noValidate>
         <label style={formStyles.label}>
           Email
           <input
-            style={formStyles.input}
+            style={{
+              ...formStyles.input,
+              borderColor: errors.email ? COLORS.red : COLORS.neutral,
+            }}
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setErrors((prev) => ({ ...prev, email: undefined }));
+            }}
+            onBlur={() => {
+              // Check when leaving the field (only if something was typed)
+              if (email !== "" && !isValidEmail(email)) {
+                setErrors((prev) => ({
+                  ...prev,
+                  email: "Please enter a valid email address.",
+                }));
+              }
+            }}
             required
           />
+          {errors.email && <span style={formStyles.error}>{errors.email}</span>}
         </label>
 
         <div style={formStyles.label} role="group" aria-labelledby="dob-label">
@@ -134,33 +198,73 @@ export default function SignUpPage() {
           )}
         </div>
 
-        <label style={formStyles.label}>
-          Password
-          <input
-            style={formStyles.input}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <span style={errors.password ? formStyles.error : formStyles.hint}>
-            Must be at least 7 characters long and include 1 capital letter.
-          </span>
-        </label>
+        <div style={formStyles.label}>
+          <label htmlFor="signup-password">Password</label>
+          <div style={styles.inputWrap}>
+            <input
+              id="signup-password"
+              className="pw-input"
+              style={passwordStyle}
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              style={styles.toggle}
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+          <ul style={styles.rules}>
+            {rules.map((rule) => (
+              <li
+                key={rule.label}
+                style={{
+                  color: rule.met
+                    ? COLORS.green
+                    : showUnmetInRed
+                    ? COLORS.red
+                    : COLORS.gray,
+                }}
+              >
+                {rule.met ? "✓" : "•"} {rule.label}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        <label style={formStyles.label}>
-          Confirm password
-          <input
-            style={formStyles.input}
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
+        <div style={formStyles.label}>
+          <label htmlFor="signup-confirm">Confirm password</label>
+          <div style={styles.inputWrap}>
+            <input
+              id="signup-confirm"
+              className="pw-input"
+              style={confirmStyle}
+              type={showConfirm ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+              }}
+              required
+            />
+            <button
+              type="button"
+              style={styles.toggle}
+              onClick={() => setShowConfirm((v) => !v)}
+              aria-label={showConfirm ? "Hide password" : "Show password"}
+            >
+              {showConfirm ? "Hide" : "Show"}
+            </button>
+          </div>
           {errors.confirmPassword && (
             <span style={formStyles.error}>{errors.confirmPassword}</span>
           )}
-        </label>
+        </div>
 
         <button style={formStyles.button} type="submit">
           Create account
