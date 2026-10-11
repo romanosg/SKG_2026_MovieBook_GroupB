@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const styles = {
   card: {
@@ -9,10 +9,10 @@ const styles = {
     flex: 1,
     width: "100%",
     boxSizing: "border-box",
+    textAlign: "left",
     fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
     fontSize: 14,
     lineHeight: 1.5,
-	textAlign: "left",
   },
   heading: {
     margin: "0 0 20px",
@@ -59,22 +59,55 @@ const styles = {
   hint: { fontSize: 12, color: "#9a9a9a", marginTop: 2 },
   row: { margin: "0 0 12px" },
   aboutHeading: { margin: "24px 0 8px", fontSize: 16, fontWeight: 700 },
-  aboutText: { margin: 0, whiteSpace: "pre-wrap" },
-  aboutEmpty: { margin: 0, color: "#9a9a9a" },
+  aboutInput: {
+    display: "block",
+    width: "100%",
+    minHeight: 280,
+    boxSizing: "border-box",
+    background: "#1b1b1b",
+    color: "#e8e8e8",
+    border: "1px solid #4a4a4a",
+    borderRadius: 6,
+    padding: "10px 12px",
+    font: "inherit",
+    lineHeight: 1.5,
+    resize: "none",
+    overflow: "hidden",
+    tabSize: 4,
+  },
   label: { fontWeight: 700, marginRight: 4 },
 };
 
 const MAX_SIZE_MB = 5;
 
 export default function Profile({
-  name = "Romanos Georgios",
-  email = "georgerom1999@gmail.com",
-  age = 27,
+  name = "Original",
+  email = "originalemail@gmail.com",
+  age = 44,
   avatarUrl = "",
-  about = "",
+  about: initialAbout = "",
+  onAboutChange, // optional: called with the new About me text
   onPhotoChange, // optional: called with the new photo as a data URL
 }) {
   const [photo, setPhoto] = useState(avatarUrl);
+  const [about, setAbout] = useState(initialAbout);
+  const aboutRef = useRef(null);
+
+  // Grow the About me box to fit its text (never smaller than minHeight)
+  const fitAbout = () => {
+    const el = aboutRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const borders = el.offsetHeight - el.clientHeight;
+    el.style.height = `${el.scrollHeight + borders}px`;
+  };
+
+  useEffect(fitAbout, [about]); // whenever the text changes
+  useEffect(() => {
+    // text wraps differently when the window width changes
+    window.addEventListener("resize", fitAbout);
+    return () => window.removeEventListener("resize", fitAbout);
+  }, []);
   const [error, setError] = useState("");
   const inputRef = useRef(null);
 
@@ -100,6 +133,25 @@ export default function Profile({
       onPhotoChange?.(reader.result);
     };
     reader.readAsDataURL(file);
+  };
+
+  const updateAbout = (value) => {
+    setAbout(value);
+    onAboutChange?.(value);
+  };
+
+  // Enter already makes a new line in a textarea.
+  // Tab normally moves focus away, so insert a tab character instead.
+  const handleAboutKeyDown = (e) => {
+    if (e.key !== "Tab") return;
+    e.preventDefault();
+    const el = e.target;
+    const { selectionStart, selectionEnd, value } = el;
+    updateAbout(value.slice(0, selectionStart) + "\t" + value.slice(selectionEnd));
+    // put the cursor right after the inserted tab
+    requestAnimationFrame(() => {
+      el.selectionStart = el.selectionEnd = selectionStart + 1;
+    });
   };
 
   return (
@@ -152,11 +204,15 @@ export default function Profile({
       </p>
 
       <h3 style={styles.aboutHeading}>About me</h3>
-      {about ? (
-        <p style={styles.aboutText}>{about}</p>
-      ) : (
-        <p style={styles.aboutEmpty}>Nothing here yet.</p>
-      )}
+      <textarea
+        ref={aboutRef}
+        style={styles.aboutInput}
+        aria-label="About me"
+        placeholder="Write something about yourself..."
+        value={about}
+        onChange={(e) => updateAbout(e.target.value)}
+        onKeyDown={handleAboutKeyDown}
+      />
     </section>
   );
 }
