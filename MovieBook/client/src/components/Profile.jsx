@@ -6,10 +6,13 @@ const styles = {
     color: "#e8e8e8",
     borderLeft: "3px solid #4a4a4a",
     padding: "20px 24px",
-    maxWidth: 420,
+    flex: 1,
+    width: "100%",
+    boxSizing: "border-box",
     fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
     fontSize: 14,
     lineHeight: 1.5,
+	textAlign: "left",
   },
   heading: {
     margin: "0 0 20px",
@@ -55,16 +58,20 @@ const styles = {
   },
   hint: { fontSize: 12, color: "#9a9a9a", marginTop: 2 },
   row: { margin: "0 0 12px" },
+  aboutHeading: { margin: "24px 0 8px", fontSize: 16, fontWeight: 700 },
+  aboutText: { margin: 0, whiteSpace: "pre-wrap" },
+  aboutEmpty: { margin: 0, color: "#9a9a9a" },
   label: { fontWeight: 700, marginRight: 4 },
 };
 
 const MAX_SIZE_MB = 5;
 
 export default function Profile({
-  name = "Original",
-  email = "originalemail@gmail.com",
-  age = 44,
+  name = "Romanos Georgios",
+  email = "georgerom1999@gmail.com",
+  age = 27,
   avatarUrl = "",
+  about = "",
   onPhotoChange, // optional: called with the new photo as a data URL
 }) {
   const [photo, setPhoto] = useState(avatarUrl);
@@ -143,6 +150,13 @@ export default function Profile({
         <span style={styles.label}>Age:</span>
         {age}
       </p>
+
+      <h3 style={styles.aboutHeading}>About me</h3>
+      {about ? (
+        <p style={styles.aboutText}>{about}</p>
+      ) : (
+        <p style={styles.aboutEmpty}>Nothing here yet.</p>
+      )}
     </section>
   );
 }

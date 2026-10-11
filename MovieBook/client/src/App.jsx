@@ -9,7 +9,15 @@ import SignUpPage from "./pages/SignUpPage";
 export default function App() {
   return (
     <BrowserRouter>
-      <div style={{ background: "#121212", minHeight: "100vh" }}>
+      <div
+        style={{
+          background: "#121212",
+          width: "100%",
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <NavBar />
         <Routes>
           <Route path="/" element={<HomePage />} />
