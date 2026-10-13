@@ -14,11 +14,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    age: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
+    dateOfBirth: {
+  type: Date,
+  required: true
+},
   },
   {
     timestamps: true,
