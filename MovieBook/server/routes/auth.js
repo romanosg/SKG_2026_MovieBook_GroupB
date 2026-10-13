@@ -1,5 +1,7 @@
+
 const express = require('express');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const router = express.Router();
@@ -7,19 +9,28 @@ const router = express.Router();
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, age } = req.body;
+    const { email, password, dateOfBirth } = req.body;
 
-    if (!email || !password || age === undefined || age === null || age === '') {
+if (
+  typeof email !== 'string' ||
+  typeof password !== 'string' ||
+  typeof dateOfBirth !== 'string' ||
+  !email.trim() ||
+  !password ||
+  !dateOfBirth.trim()
+) {
+  return res.status(400).json({
+    message: 'Email, password and date of birth are required.',
+  });
+}
+    const parsedDateOfBirth = new Date(dateOfBirth);
+
+    if (
+      Number.isNaN(parsedDateOfBirth.getTime()) ||
+      parsedDateOfBirth > new Date()
+    ) {
       return res.status(400).json({
-        message: 'Email, password and age are required.',
-      });
-    }
-
-    const parsedAge = Number(age);
-
-    if (!Number.isFinite(parsedAge) || parsedAge < 0) {
-      return res.status(400).json({
-        message: 'Age must be a valid non-negative number.',
+        message: 'Date of birth must be a valid date in the past.',
       });
     }
 
@@ -40,7 +51,7 @@ router.post('/register', async (req, res) => {
     const newUser = new User({
       email: normalizedEmail,
       password: hashedPassword,
-      age: parsedAge,
+      dateOfBirth: parsedDateOfBirth,
     });
 
     await newUser.save();
@@ -50,7 +61,7 @@ router.post('/register', async (req, res) => {
       user: {
         id: newUser._id,
         email: newUser.email,
-        age: newUser.age,
+        dateOfBirth: newUser.dateOfBirth,
       },
     });
   } catch (error) {
@@ -73,11 +84,16 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({
-        message: 'Email and password are required.',
-      });
-    }
+if (
+  typeof email !== 'string' ||
+  typeof password !== 'string' ||
+  !email.trim() ||
+  !password
+) {
+  return res.status(400).json({
+    message: 'Email and password are required.',
+  });
+}
 
     const user = await User.findOne({
       email: email.trim().toLowerCase(),
@@ -99,20 +115,61 @@ router.post('/login', async (req, res) => {
         message: 'Invalid email or password.',
       });
     }
-
+    
+const token = jwt.sign(
+  { userId: user._id },
+  process.env.JWT_SECRET,
+  { expiresIn: '1h' }
+);
     return res.status(200).json({
-      message: 'Login successful.',
-      user: {
-        id: user._id,
-        email: user.email,
-        age: user.age,
-      },
-    });
+  message: 'Login successful.',
+  token,
+  user: {
+    id: user._id,
+    email: user.email,
+    dateOfBirth: user.dateOfBirth,
+  },
+});
   } catch (error) {
     console.error('Login error:', error);
 
     return res.status(500).json({
       message: 'An error occurred during login.',
+    });
+  }
+});
+
+router.get('/profile', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        message: 'Authentication token is required.',
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found.',
+      });
+    }
+
+    return res.status(200).json({
+      user: {
+        id: user._id,
+        email: user.email,
+        dateOfBirth: user.dateOfBirth,
+      },
+    });
+  } catch (error) {
+    return res.status(401).json({
+      message: 'Invalid or expired authentication token.',
     });
   }
 });

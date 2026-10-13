@@ -1,5 +1,8 @@
 
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+console.log('ENV file path:', require('path').join(__dirname, '.env'));
+console.log('JWT_SECRET exists:', Object.hasOwn(process.env, 'JWT_SECRET'));
+console.log('JWT_SECRET loaded in index:', Boolean(process.env.JWT_SECRET));
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
