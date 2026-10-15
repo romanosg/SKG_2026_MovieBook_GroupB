@@ -7,7 +7,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
-
+const movieRoutes = require('./routes/movies');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -17,7 +17,7 @@ app.use(express.json());
 
 // Authentication routes
 app.use('/api/auth', authRoutes);
-
+app.use('/api/movies', movieRoutes);
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Connected to MongoDB'))
