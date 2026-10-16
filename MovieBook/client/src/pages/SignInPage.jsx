@@ -4,6 +4,19 @@ import formStyles from "./formStyles";
 import { isValidEmail, isValidPassword } from "../utils/validation";
 
 const styles = {
+  inputWrap: { position: "relative" },
+  toggle: {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "none",
+    border: "none",
+    padding: 0,
+    color: "#8ab4f8",
+    fontSize: 12,
+    cursor: "pointer",
+  },
   forgotRow: { display: "flex", justifyContent: "flex-end" },
   forgotButton: {
     background: "none",
@@ -19,6 +32,7 @@ export default function SignInPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = (e) => {
@@ -39,6 +53,13 @@ export default function SignInPage() {
 
   return (
     <main style={formStyles.page}>
+      {/* Hides the browser's built-in "reveal password" icon (Edge) */}
+      <style>{`
+        .pw-input::-ms-reveal,
+        .pw-input::-ms-clear {
+          display: none;
+        }
+      `}</style>
       <h1 style={formStyles.authTitle}>Sign in</h1>
       <form style={formStyles.authForm} onSubmit={handleSubmit} noValidate>
         <label style={formStyles.label}>
@@ -53,18 +74,30 @@ export default function SignInPage() {
             }}
           />
         </label>
-        <label style={formStyles.label}>
-          Password
-          <input
-            style={formStyles.input}
-            type="password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setError("");
-            }}
-          />
-        </label>
+        <div style={formStyles.label}>
+          <label htmlFor="signin-password">Password</label>
+          <div style={styles.inputWrap}>
+            <input
+              id="signin-password"
+              className="pw-input"
+              style={{ ...formStyles.input, width: "100%", paddingRight: 56 }}
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError("");
+              }}
+            />
+            <button
+              type="button"
+              style={styles.toggle}
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+        </div>
 
         {error && <span style={formStyles.error}>{error}</span>}
 

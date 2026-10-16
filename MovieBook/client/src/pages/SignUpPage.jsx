@@ -83,10 +83,11 @@ export default function SignUpPage() {
       : COLORS.red;
   const passwordStyle = {
     ...formStyles.input,
+    width: "100%",
     paddingRight: 56,
     borderColor: passwordBorder,
   };
-  const confirmStyle = { ...formStyles.input, paddingRight: 56 };
+  const confirmStyle = { ...formStyles.input, width: "100%", paddingRight: 56 };
 
   // Unmet rules are gray on an untouched form, red once there is a problem
   const showUnmetInRed = password !== "" || Boolean(errors.password);
