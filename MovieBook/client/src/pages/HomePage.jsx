@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import formStyles from "./formStyles";
 import logo from "../assets/AFJ_circle_logo.png";
 
 // Maximum number of movies shown on one page (change this to show more or fewer)
 const MOVIES_PER_PAGE = 2;
 
-// Width and height of each movie picture, in pixels
-const MOVIE_IMAGE_SIZE = 240;
+// Width of each movie picture in pixels (the height follows the picture's own proportions)
+const MOVIE_IMAGE_WIDTH = 240;
 
 // The search bar and Search button share this height
 const CONTROL_HEIGHT = 44;
 
-// Poster's Url
+// The movie's picture comes from its poster_url field
 const getImageUrl = (movie) => movie.poster_url || "";
 
 // Page numbers to show, e.g. 1 … 4 5 6 … 20 (always includes first and last)
@@ -76,36 +77,69 @@ const styles = {
     padding: "0 20px",
     flexShrink: 0,
   },
+  // Centered under the search bar; the dropdown is only as wide as its longest genre
+  genreRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 12,
+  },
+  genreLabel: {
+    color: "#8ab4f8",
+    fontSize: 13,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: 2,
+    paddingBottom: 2,
+    borderBottom: "2px solid #8ab4f8",
+  },
+  genreSelect: {
+    ...formStyles.input,
+    width: "auto",
+    height: 40,
+    padding: "0 12px",
+    colorScheme: "dark",
+    cursor: "pointer",
+  },
   sectionTitle: {
     margin: "32px 0 0",
     fontSize: 48,
     fontWeight: 700,
     textAlign: "left",
+    overflowWrap: "anywhere",
   },
   // Movie cards side by side, wrapping onto the next row when there's no space
   movieGrid: {
     display: "flex",
     flexWrap: "wrap",
+    alignItems: "flex-start",
     gap: 24,
     listStyle: "none",
     margin: "16px 0 0",
     padding: 0,
   },
   movieCard: {
-    width: MOVIE_IMAGE_SIZE,
+    width: MOVIE_IMAGE_WIDTH,
     textAlign: "center",
   },
+  // Link wrapping the picture: shows the "click" hand cursor
+  movieImageLink: {
+    display: "block",
+    width: MOVIE_IMAGE_WIDTH,
+    cursor: "pointer",
+  },
+  // Fixed width, height adjusts automatically to keep the picture's proportions
   movieImage: {
     display: "block",
-    width: MOVIE_IMAGE_SIZE,
-    height: MOVIE_IMAGE_SIZE,
-    objectFit: "cover",
+    width: MOVIE_IMAGE_WIDTH,
+    height: "auto",
     borderRadius: 8,
     background: "#242424",
   },
   moviePlaceholder: {
-    width: MOVIE_IMAGE_SIZE,
-    height: MOVIE_IMAGE_SIZE,
+    width: MOVIE_IMAGE_WIDTH,
+    aspectRatio: "2 / 3",
     borderRadius: 8,
     background: "#242424",
     color: "#9a9a9a",
@@ -152,10 +186,13 @@ const styles = {
 
 export default function HomePage() {
   const [query, setQuery] = useState("");
-  const [movies, setMovies] = useState([]);
+  const [movies, setMovies] = useState([]); // current results (all movies or search results)
+  const [allMovies, setAllMovies] = useState([]); // every movie, used for the genre list
+  const [searchTerm, setSearchTerm] = useState(""); // the search that was actually submitted
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
+  const [genre, setGenre] = useState(""); // "" means all genres
 
   // No title: GET /api/movies (all movies). With a title: GET /api/movies/search?title=...
   const loadMovies = async (title = "") => {
@@ -168,8 +205,12 @@ export default function HomePage() {
         : "/api/movies";
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Request failed (${response.status})`);
-      setMovies(await response.json());
+      const data = await response.json();
+      setMovies(data);
+      setSearchTerm(trimmed);
+      if (!trimmed) setAllMovies(data); // an empty search returns every movie
       setPage(1); // new results start on the first page
+      // the chosen genre is kept, so an empty search shows all movies of that genre
     } catch (err) {
       console.error("Error loading movies:", err);
       setMovies([]);
@@ -189,20 +230,46 @@ export default function HomePage() {
     loadMovies(query); // an empty search shows all movies again
   };
 
+  // Every genre that exists, for the dropdown
+  const genres = [...new Set(allMovies.flatMap((movie) => movie.genre || []))].sort();
+
+  // Filter by the chosen genre, then newest year first (ties sorted by title)
+  const sortedMovies = movies
+    .filter((movie) => !genre || (movie.genre || []).includes(genre))
+    .sort((a, b) => b.year - a.year || a.title.localeCompare(b.title));
+
+  // Heading: "Movies (Genre)" normally, or the search wording after a search
+  const genreText = genre || "All";
+  const heading = searchTerm
+    ? `Movie results with '${searchTerm}' (${genreText})`
+    : `Movies (${genreText})`;
+
   // Only the movies belonging to the current page
-  const totalPages = Math.ceil(movies.length / MOVIES_PER_PAGE);
+  const totalPages = Math.ceil(sortedMovies.length / MOVIES_PER_PAGE);
   const firstIndex = (page - 1) * MOVIES_PER_PAGE;
-  const visibleMovies = movies.slice(firstIndex, firstIndex + MOVIES_PER_PAGE);
+  const visibleMovies = sortedMovies.slice(firstIndex, firstIndex + MOVIES_PER_PAGE);
 
   return (
     <main style={formStyles.page}>
+      {/* Movie titles are underlined only while hovered */}
+      <style>{`
+        .movie-title-link {
+          color: inherit;
+          text-decoration: none;
+          cursor: pointer;
+        }
+        .movie-title-link:hover {
+          text-decoration: underline;
+        }
+      `}</style>
+
       <div style={styles.topRow}>
         <div style={styles.logoBox}>
           <img src={logo} alt="AFJ logo" style={styles.logo} />
         </div>
 
         <div style={styles.topContent}>
-          <h1 style={styles.title}>Welcome to Appraisal Film Journal!</h1>
+          <h1 style={styles.title}>Welcome to Apraisal Film Journal</h1>
 
           <form style={styles.searchForm} onSubmit={handleSubmit}>
             <input
@@ -217,14 +284,36 @@ export default function HomePage() {
               Search
             </button>
           </form>
+
+          <div style={styles.genreRow}>
+            <label htmlFor="genre-select" style={styles.genreLabel}>
+              Genre
+            </label>
+            <select
+              id="genre-select"
+              style={styles.genreSelect}
+              value={genre}
+              onChange={(e) => {
+                setGenre(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All</option>
+              {genres.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      <h2 style={styles.sectionTitle}>Movies</h2>
+      <h2 style={styles.sectionTitle}>{heading}</h2>
 
       {loading && <p style={styles.message}>Loading movies...</p>}
       {error && <p style={styles.errorMessage}>{error}</p>}
-      {!loading && !error && movies.length === 0 && (
+      {!loading && !error && sortedMovies.length === 0 && (
         <p style={styles.message}>No movies found.</p>
       )}
 
@@ -232,14 +321,21 @@ export default function HomePage() {
         <ul style={styles.movieGrid}>
           {visibleMovies.map((movie) => {
             const imageUrl = getImageUrl(movie);
+            const moviePath = `/movies/${movie._id}`;
             return (
               <li key={movie._id} style={styles.movieCard}>
-                {imageUrl ? (
-                  <img src={imageUrl} alt={movie.title} style={styles.movieImage} />
-                ) : (
-                  <div style={styles.moviePlaceholder}>No image</div>
-                )}
-                <p style={styles.movieName}>{movie.title}</p>
+                <Link to={moviePath} style={styles.movieImageLink} aria-label={movie.title}>
+                  {imageUrl ? (
+                    <img src={imageUrl} alt="" style={styles.movieImage} />
+                  ) : (
+                    <div style={styles.moviePlaceholder}>No image</div>
+                  )}
+                </Link>
+                <p style={styles.movieName}>
+                  <Link to={moviePath} className="movie-title-link">
+                    {movie.title}
+                  </Link>
+                </p>
               </li>
             );
           })}

@@ -4,6 +4,8 @@ const router = express.Router();
 
 const Movie = require('../models/Movie');
 
+const mongoose = require('mongoose');
+
 // GET /api/movies - Get all movies
 router.get('/', async (req, res) => {
   try {
@@ -36,6 +38,28 @@ router.get('/search', async (req, res) => {
     res.status(500).json({
       message: 'Failed to search movies'
     });
+  }
+});
+
+/* GET /api/movies/:id - Get a single movie by its id */
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid movie id' });
+    }
+
+    const movie = await Movie.findById(id);
+
+    if (!movie) {
+      return res.status(404).json({ message: 'Movie not found' });
+    }
+
+    res.status(200).json(movie);
+  } catch (error) {
+    console.error('Error fetching movie:', error);
+    res.status(500).json({ message: 'Failed to fetch movie' });
   }
 });
 
