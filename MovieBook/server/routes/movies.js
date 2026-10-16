@@ -3,7 +3,6 @@ const express = require('express');
 const router = express.Router();
 
 const Movie = require('../models/Movie');
-
 const mongoose = require('mongoose');
 
 // GET /api/movies - Get all movies
@@ -17,20 +16,64 @@ router.get('/', async (req, res) => {
   }
 });
 
-/* GET /api/movies/search?title=dark - Search movies by title */
+// GET /api/movies/search?q=dark
+// Search by title, description, director and genre, in priority order
 router.get('/search', async (req, res) => {
   try {
-    const title = req.query.title;
+    const query = req.query.q || req.query.title;
 
-    if (!title || !title.trim()) {
+    if (typeof query !== 'string' || !query.trim()) {
       return res.status(400).json({
-        message: 'Please provide a movie title to search'
+        message: 'Please provide a search term'
       });
     }
 
+    const searchTerm = query.trim();
+
+    // Escape special regex characters so the input is treated as plain text
+    const escapedTerm = searchTerm.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      '\\$&'
+    );
+
+    const regex = new RegExp(escapedTerm, 'i');
+
     const movies = await Movie.find({
-      title: { $regex: title.trim(), $options: 'i' }
-    }).sort({ title: 1 });
+      $or: [
+        { title: regex },
+        { description: regex },
+        { director: regex },
+        { genre: regex }
+      ]
+    });
+
+    // Lower number means higher priority
+    const getPriority = (movie) => {
+      if (regex.test(movie.title || '')) return 1;
+
+      if (regex.test(movie.description || '')) return 2;
+
+      if (regex.test(movie.director || '')) return 3;
+
+      const genres = Array.isArray(movie.genre)
+        ? movie.genre
+        : [movie.genre || ''];
+
+      if (genres.some((genre) => regex.test(genre))) return 4;
+
+      return 5;
+    };
+
+    movies.sort((a, b) => {
+      const priorityDifference =
+        getPriority(a) - getPriority(b);
+
+      if (priorityDifference !== 0) {
+        return priorityDifference;
+      }
+
+      return a.title.localeCompare(b.title);
+    });
 
     res.status(200).json(movies);
   } catch (error) {
@@ -41,7 +84,7 @@ router.get('/search', async (req, res) => {
   }
 });
 
-/* GET /api/movies/:id - Get a single movie by its id */
+// GET /api/movies/:id - Get a single movie by its id
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;

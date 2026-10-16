@@ -5,8 +5,8 @@
     "year": 1994,
     "genre": ["Drama"],
     "director": "Frank Darabont",
-    "description": "Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.",
-    "poster_url": "https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg"
+    "description": "Two imprisoned men bond over years, finding solace and eventual redemption through acts of common decency.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg"
   },
   {
     "title": "The Godfather",
@@ -21,7 +21,103 @@
     "year": 2008,
     "genre": ["Action", "Crime", "Drama"],
     "director": "Christopher Nolan",
-    "description": "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests.",
+    "description": "Batman faces the Joker, a criminal mastermind who seeks to plunge Gotham City into chaos.",
     "poster_url": "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg"
+  },
+  {
+    "title": "Oppenheimer",
+    "year": 2023,
+    "genre": ["Drama", "History", "Thriller"],
+    "director": "Christopher Nolan",
+    "description": "The story of J. Robert Oppenheimer and his role in the development of the atomic bomb.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/ptpr0kGAckfQkJeJIt8st5dglvd.jpg"
+  },
+  {
+    "title": "Poor Things",
+    "year": 2023,
+    "genre": ["Comedy", "Fantasy", "Romance"],
+    "director": "Yorgos Lanthimos",
+    "description": "The fantastical evolution of Bella Baxter, a young woman brought back to life.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/kCGlIMHnOm8JPXq3rXM6c5wMxcT.jpg"
+  },
+  {
+    "title": "Spirited Away",
+    "year": 2001,
+    "genre": ["Animation", "Fantasy", "Adventure"],
+    "director": "Hayao Miyazaki",
+    "description": "A young girl enters a mysterious spirit world and must find a way to save her parents.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg"
+  },
+  {
+    "title": "Parasite",
+    "year": 2019,
+    "genre": ["Thriller", "Drama"],
+    "director": "Bong Joon Ho",
+    "description": "A poor family gradually becomes entangled with a wealthy household, leading to unexpected consequences.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg"
+  },
+  {
+    "title": "The Matrix",
+    "year": 1999,
+    "genre": ["Action", "Sci-Fi"],
+    "director": "Lana Wachowski, Lilly Wachowski",
+    "description": "A computer hacker learns that reality as he knows it is a simulation and joins a rebellion against its controllers.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg"
+  },
+  {
+    "title": "Underworld",
+    "year": 2003,
+    "genre": ["Action", "Fantasy", "Horror"],
+    "director": "Len Wiseman",
+    "description": "A vampire warrior becomes caught in a centuries-old war between vampires and Lycans.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/zsnQ41UZ3jo1wEeemF0eA9cAIU0.jpg"
+  },
+  {
+    "title": "Pride & Prejudice",
+    "year": 2005,
+    "genre": ["Romance", "Drama"],
+    "director": "Joe Wright",
+    "description": "Elizabeth Bennet and Mr. Darcy navigate love, social expectations, and misunderstandings in 19th-century England.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/sGjIvtVvTlWnia2zfJfHz81pZ9Q.jpg"
+  },
+  {
+    "title": "The Mask",
+    "year": 1994,
+    "genre": ["Comedy", "Fantasy"],
+    "director": "Chuck Russell",
+    "description": "A shy bank clerk discovers a magical mask that transforms him into a mischievous, cartoon-like character.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/q9O7aYk2unOdKXt6HCCalF9Jup8.jpg"
+  },
+  {
+    "title": "The Nutty Professor",
+    "year": 1996,
+    "genre": ["Comedy", "Romance"],
+    "director": "Tom Shadyac",
+    "description": "A shy professor invents a formula that transforms him into a confident but unpredictable alter ego.",
+    "poster_url": "https://images.contentstack.io/v3/assets/blt13adb7e2033fcee5/blt492a2422beabbc7a/691c8bebae370c5f3dba6f26/TheNuttyProfessor_Poster_2000x3000_uaa.jpg?width=2560"
+  },
+  {
+    "title": "The Lord of the Rings: The Fellowship of the Ring",
+    "year": 2001,
+    "genre": ["Adventure", "Fantasy"],
+    "director": "Peter Jackson",
+    "description": "A young hobbit begins a dangerous journey to destroy a powerful ring and prevent the Dark Lord from conquering Middle-earth.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/6oom5QYQ2yQTMJIbnvbkBL9cHo6.jpg"
+  },
+  {
+    "title": "The Lord of the Rings: The Two Towers",
+    "year": 2002,
+    "genre": ["Adventure", "Fantasy"],
+    "director": "Peter Jackson",
+    "description": "The members of the Fellowship continue their separate journeys as war spreads across Middle-earth.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/5VTN0pR8gcqV3EPUHHfMGnJYN9L.jpg"
+  },
+  {
+    "title": "The Lord of the Rings: The Return of the King",
+    "year": 2003,
+    "genre": ["Adventure", "Fantasy"],
+    "director": "Peter Jackson",
+    "description": "The final battle for Middle-earth begins as Frodo and Sam approach Mount Doom to destroy the One Ring.",
+    "poster_url": "https://image.tmdb.org/t/p/w500/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg"
   }
 ]

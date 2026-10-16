@@ -8,7 +8,6 @@ const Movie = require('./models/Movie');
 
 async function seedMovies() {
   try {
-    // Use the same MongoDB connection variable as server/index.js
     await mongoose.connect(process.env.MONGO_URI);
     console.log('Connected to MongoDB');
 
@@ -17,22 +16,30 @@ async function seedMovies() {
       fs.readFileSync(datasetPath, 'utf8')
     );
 
-    // Add only movies that do not already exist by title
     let added = 0;
+    let updated = 0;
+    let unchanged = 0;
 
     for (const movieData of moviesData) {
-      const exists = await Movie.findOne({ title: movieData.title });
+      const result = await Movie.updateOne(
+        { title: movieData.title },
+        { $set: movieData },
+        { upsert: true }
+      );
 
-      if (!exists) {
-        await Movie.create(movieData);
+      if (result.upsertedCount > 0) {
         console.log(`Added: ${movieData.title}`);
         added++;
+      } else if (result.modifiedCount > 0) {
+        console.log(`Updated: ${movieData.title}`);
+        updated++;
       } else {
-        console.log(`Already exists: ${movieData.title}`);
+        console.log(`Unchanged: ${movieData.title}`);
+        unchanged++;
       }
     }
 
-    console.log(`Finished. Added ${added} new movies.`);
+    console.log(`Finished. Added: ${added}, Updated: ${updated}, Unchanged: ${unchanged}`);
   } catch (error) {
     console.error('Error seeding movies:', error.message);
   } finally {
