@@ -110,12 +110,13 @@ const styles = {
     textAlign: "left",
     overflowWrap: "anywhere",
   },
-  // Movie cards side by side, wrapping onto the next row when there's no space
+  // Movie cards in fixed-width columns: every row starts at the same left edge,
+  // while the whole block stays centered so left and right space match
   movieGrid: {
-    display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "center", // equal space on the left and right of each row
-    alignItems: "flex-start",
+    display: "grid",
+    gridTemplateColumns: `repeat(auto-fill, ${MOVIE_IMAGE_WIDTH}px)`,
+    justifyContent: "center",
+    alignItems: "start",
     gap: 24,
     listStyle: "none",
     margin: "16px 0 0",
