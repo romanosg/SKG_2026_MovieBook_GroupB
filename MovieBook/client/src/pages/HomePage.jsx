@@ -4,7 +4,11 @@ import formStyles from "./formStyles";
 import logo from "../assets/AFJ_circle_logo.png";
 
 // Maximum number of movies shown on one page (change this to show more or fewer)
-const MOVIES_PER_PAGE = 2;
+const MOVIES_PER_PAGE = 5;
+
+// How many page numbers to show before and after the current page
+const PAGES_BEFORE_CURRENT = 1;
+const PAGES_AFTER_CURRENT = 1;
 
 // Width of each movie picture in pixels (the height follows the picture's own proportions)
 const MOVIE_IMAGE_WIDTH = 240;
@@ -15,16 +19,13 @@ const CONTROL_HEIGHT = 44;
 // The movie's picture comes from its poster_url field
 const getImageUrl = (movie) => movie.poster_url || "";
 
-// Page numbers to show, e.g. 1 … 4 5 6 … 20 (always includes first and last)
+// Page numbers to show: a few pages before and after the current one
 const getPageItems = (current, total) => {
-  const wanted = new Set([1, total, current - 1, current, current + 1]);
-  const pages = [...wanted].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
-  const items = [];
-  pages.forEach((page, i) => {
-    if (i > 0 && page - pages[i - 1] > 1) items.push(`gap-${page}`);
-    items.push(page);
-  });
-  return items;
+  const first = Math.max(1, current - PAGES_BEFORE_CURRENT);
+  const last = Math.min(total, current + PAGES_AFTER_CURRENT);
+  const pages = [];
+  for (let p = first; p <= last; p++) pages.push(p);
+  return pages;
 };
 
 const styles = {
@@ -113,6 +114,7 @@ const styles = {
   movieGrid: {
     display: "flex",
     flexWrap: "wrap",
+    justifyContent: "center", // equal space on the left and right of each row
     alignItems: "flex-start",
     gap: 24,
     listStyle: "none",
@@ -180,8 +182,13 @@ const styles = {
     borderColor: "#8ab4f8",
     fontWeight: 600,
   },
+  // First / Previous / Next / Last: filled blue, like the Search and Sign up buttons
+  pageNavButton: {
+    ...formStyles.button,
+    border: "1px solid #8ab4f8",
+    padding: "6px 14px",
+  },
   pageButtonDisabled: { opacity: 0.4, cursor: "default" },
-  ellipsis: { color: "#9a9a9a", padding: "0 4px" },
 };
 
 export default function HomePage() {
@@ -347,7 +354,19 @@ export default function HomePage() {
           <button
             type="button"
             style={{
-              ...styles.pageButton,
+              ...styles.pageNavButton,
+              ...(page === 1 ? styles.pageButtonDisabled : {}),
+            }}
+            disabled={page === 1}
+            onClick={() => setPage(1)}
+          >
+            First
+          </button>
+
+          <button
+            type="button"
+            style={{
+              ...styles.pageNavButton,
               ...(page === 1 ? styles.pageButtonDisabled : {}),
             }}
             disabled={page === 1}
@@ -356,37 +375,43 @@ export default function HomePage() {
             Previous
           </button>
 
-          {getPageItems(page, totalPages).map((item) =>
-            typeof item === "number" ? (
-              <button
-                key={item}
-                type="button"
-                style={{
-                  ...styles.pageButton,
-                  ...(item === page ? styles.pageButtonActive : {}),
-                }}
-                aria-current={item === page ? "page" : undefined}
-                onClick={() => setPage(item)}
-              >
-                {item}
-              </button>
-            ) : (
-              <span key={item} style={styles.ellipsis}>
-                …
-              </span>
-            )
-          )}
+          {getPageItems(page, totalPages).map((item) => (
+            <button
+              key={item}
+              type="button"
+              style={{
+                ...styles.pageButton,
+                ...(item === page ? styles.pageButtonActive : {}),
+              }}
+              aria-current={item === page ? "page" : undefined}
+              onClick={() => setPage(item)}
+            >
+              {item}
+            </button>
+          ))}
 
           <button
             type="button"
             style={{
-              ...styles.pageButton,
+              ...styles.pageNavButton,
               ...(page === totalPages ? styles.pageButtonDisabled : {}),
             }}
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
           >
             Next
+          </button>
+
+          <button
+            type="button"
+            style={{
+              ...styles.pageNavButton,
+              ...(page === totalPages ? styles.pageButtonDisabled : {}),
+            }}
+            disabled={page === totalPages}
+            onClick={() => setPage(totalPages)}
+          >
+            Last
           </button>
         </nav>
       )}
