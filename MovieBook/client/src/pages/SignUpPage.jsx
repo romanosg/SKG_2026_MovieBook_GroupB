@@ -55,6 +55,7 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const dayRef = useRef(null);
   const monthRef = useRef(null);
@@ -92,7 +93,7 @@ export default function SignUpPage() {
   // Unmet rules are gray on an untouched form, red once there is a problem
   const showUnmetInRed = password !== "" || Boolean(errors.password);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const newErrors = {};
@@ -112,10 +113,37 @@ export default function SignUpPage() {
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    const birthdate = `${day}/${month}/${year}`;
-    // TODO: send { email, birthdate, password } to your backend
-    console.log("Sign up:", { email, birthdate, password });
-    navigate("/"); // go to the homepage
+    // metatrepoume se YYYY-MM-DD gia ton server
+    const dateOfBirth = `${year}-${month}-${day}`;
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:3000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, dateOfBirth, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // p.x. email idi yparxei
+        if (response.status === 409) {
+          setErrors({ email: data.message });
+        } else {
+          setErrors({ email: data.message });
+        }
+        return;
+      }
+
+      // epitixia, redirect sto sign-in
+      navigate("/sign-in");
+    } catch (err) {
+      setErrors({ email: "Could not connect to the server. Please try again." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -267,8 +295,8 @@ export default function SignUpPage() {
           )}
         </div>
 
-        <button style={formStyles.button} type="submit">
-          Create account
+        <button style={formStyles.button} type="submit" disabled={loading}>
+          {loading ? "Creating account..." : "Create account"}
         </button>
       </form>
     </main>

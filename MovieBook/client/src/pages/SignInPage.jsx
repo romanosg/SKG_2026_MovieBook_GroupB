@@ -34,8 +34,9 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Empty or not meeting the sign-up criteria: clear both fields
@@ -46,9 +47,35 @@ export default function SignInPage() {
       return;
     }
 
-    // TODO: check { email, password } against your backend
-    console.log("Sign in:", { email, password });
-    navigate("/"); // go to the homepage
+    setLoading(true);
+    setError("");
+
+    try {
+      // stilvoume email + password sto backend
+      const response = await fetch("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Login failed. Please try again.");
+        setPassword("");
+        return;
+      }
+
+      // apothikevoume token + user sto localStorage
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      window.dispatchEvent(new Event("authChange"));
+      navigate("/");
+    } catch (err) {
+      setError("Could not connect to the server. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -101,8 +128,8 @@ export default function SignInPage() {
 
         {error && <span style={formStyles.error}>{error}</span>}
 
-        <button style={formStyles.button} type="submit">
-          Sign in
+        <button style={formStyles.button} type="submit" disabled={loading}>
+          {loading ? "Signing in..." : "Sign in"}
         </button>
 
         <div style={styles.forgotRow}>

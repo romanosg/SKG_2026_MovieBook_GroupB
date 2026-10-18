@@ -41,11 +41,18 @@ const styles = {
     overflow: "hidden",
     flexShrink: 0,
   },
-  avatarImg: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    display: "block",
+  avatarStatic: {
+    width: 72,
+    height: 72,
+    borderRadius: "50%",
+    background: "#8b95a7",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 28,
+    overflow: "hidden",
+    flexShrink: 0,
   },
   linkButton: {
     background: "none",
@@ -75,6 +82,19 @@ const styles = {
     overflow: "hidden",
     tabSize: 4,
   },
+  aboutReadOnly: {
+    display: "block",
+    width: "100%",
+    minHeight: 100,
+    boxSizing: "border-box",
+    background: "#1b1b1b",
+    color: "#9a9a9a",
+    border: "1px solid #3a3a3a",
+    borderRadius: 6,
+    padding: "10px 12px",
+    font: "inherit",
+    lineHeight: 1.5,
+  },
   label: { fontWeight: 700, marginRight: 4 },
 };
 
@@ -83,9 +103,10 @@ const MAX_SIZE_MB = 5;
 export default function Profile({
   name = "Original",
   email = "originalemail@gmail.com",
-  age = 44,
+  age = null,
   avatarUrl = "",
   about: initialAbout = "",
+  canEdit = false,        // neo prop: an false, read-only mode
   onAboutChange, // optional: called with the new About me text
   onPhotoChange, // optional: called with the new photo as a data URL
 }) {
@@ -108,6 +129,7 @@ export default function Profile({
     window.addEventListener("resize", fitAbout);
     return () => window.removeEventListener("resize", fitAbout);
   }, []);
+
   const [error, setError] = useState("");
   const inputRef = useRef(null);
 
@@ -156,34 +178,48 @@ export default function Profile({
 
   return (
     <section style={styles.card}>
-      <h2 style={styles.heading}>Your Profile</h2>
+      <h2 style={styles.heading}>George's Profile</h2>
 
       <div style={styles.photoRow}>
-        <button
-          type="button"
-          style={styles.avatar}
-          onClick={() => inputRef.current?.click()}
-          aria-label="Change profile photo"
-        >
-          {photo ? (
-            <img src={photo} alt={`${name}'s photo`} style={styles.avatarImg} />
-          ) : (
-            initial
-          )}
-        </button>
-
-        <div>
+        {/* canEdit=true: avatar einai koumpi, canEdit=false: aplo div */}
+        {canEdit ? (
           <button
             type="button"
-            style={styles.linkButton}
+            style={styles.avatar}
             onClick={() => inputRef.current?.click()}
+            aria-label="Change profile photo"
           >
-            {photo ? "Change photo" : "Upload photo"}
+            {photo ? (
+              <img src={photo} alt={`${name}'s photo`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              initial
+            )}
           </button>
-          <div style={styles.hint}>
-            {error ? <span style={{ color: "#ff8a80" }}>{error}</span> : "JPG or PNG, up to 5 MB"}
+        ) : (
+          <div style={styles.avatarStatic}>
+            {photo ? (
+              <img src={photo} alt={`${name}'s photo`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              initial
+            )}
           </div>
-        </div>
+        )}
+
+        {/* 'Change photo' mono an canEdit=true */}
+        {canEdit && (
+          <div>
+            <button
+              type="button"
+              style={styles.linkButton}
+              onClick={() => inputRef.current?.click()}
+            >
+              {photo ? "Change photo" : "Upload photo"}
+            </button>
+            <div style={styles.hint}>
+              {error ? <span style={{ color: "#ff8a80" }}>{error}</span> : "JPG or PNG, up to 5 MB"}
+            </div>
+          </div>
+        )}
 
         <input
           ref={inputRef}
@@ -198,21 +234,32 @@ export default function Profile({
         <span style={styles.label}>Email:</span>
         {email}
       </p>
-      <p style={styles.row}>
-        <span style={styles.label}>Age:</span>
-        {age}
-      </p>
+      {/* ilikia mono an exoume timi */}
+      {age !== null && (
+        <p style={styles.row}>
+          <span style={styles.label}>Age:</span>
+          {age}
+        </p>
+      )}
 
       <h3 style={styles.aboutHeading}>About me</h3>
-      <textarea
-        ref={aboutRef}
-        style={styles.aboutInput}
-        aria-label="About me"
-        placeholder="Write something about yourself..."
-        value={about}
-        onChange={(e) => updateAbout(e.target.value)}
-        onKeyDown={handleAboutKeyDown}
-      />
+
+      {/* canEdit=true: textarea, canEdit=false: read-only div */}
+      {canEdit ? (
+        <textarea
+          ref={aboutRef}
+          style={styles.aboutInput}
+          aria-label="About me"
+          placeholder="Write something about yourself..."
+          value={about}
+          onChange={(e) => updateAbout(e.target.value)}
+          onKeyDown={handleAboutKeyDown}
+        />
+      ) : (
+        <div style={styles.aboutReadOnly}>
+          {about || <span style={{ color: "#5a5a5a" }}>Nothing written yet.</span>}
+        </div>
+      )}
     </section>
   );
 }
