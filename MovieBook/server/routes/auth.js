@@ -174,4 +174,49 @@ router.get('/profile', async (req, res) => {
   }
 });
 
+// Calculating user's age in whole years, using today's date in GMT+3
+function calculateAge(dateOfBirth) {
+  const nowGmt3 = new Date(Date.now() + 3 * 60 * 60 * 1000);
+  let age = nowGmt3.getUTCFullYear() - dateOfBirth.getUTCFullYear();
+  const monthDiff = nowGmt3.getUTCMonth() - dateOfBirth.getUTCMonth();
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && nowGmt3.getUTCDate() < dateOfBirth.getUTCDate())
+  ) {
+    age--;
+  }
+  return age;
+}
+
+// GET /api/auth/user-info?email=someone@example.com - public info for a profile page
+router.get('/user-info', async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (typeof email !== 'string' || !email.trim()) {
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+
+    const user = await User.findOne({
+      email: email.trim().toLowerCase(),
+    }).select('email dateOfBirth');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    return res.status(200).json({
+      user: {
+        email: user.email,
+        age: calculateAge(user.dateOfBirth),
+      },
+    });
+  } catch (error) {
+    console.error('User info error:', error);
+    return res.status(500).json({
+      message: 'An error occurred while fetching the user.',
+    });
+  }
+});
+
 module.exports = router;

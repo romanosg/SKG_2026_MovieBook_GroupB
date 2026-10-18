@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
+
+// Exhibition profile. Only this link knows about George: the profile page itself is generic.
+const GEORGE_EMAIL = "georgerom1999@gmail.com";
 
 const styles = {
   bar: {
@@ -93,6 +96,20 @@ export default function NavBar() {
     navigate("/");
   };
 
+  // Both profile links open /profile?email=... with a different email.
+  // NavLink only looks at the path, so we work out the highlight ourselves.
+  const location = useLocation();
+  const onProfilePage = location.pathname === "/profile";
+  const viewedEmail = new URLSearchParams(location.search).get("email");
+  const myProfileActive =
+    onProfilePage &&
+    Boolean(user) &&
+    viewedEmail?.toLowerCase() === user.email.toLowerCase();
+  const georgeProfileActive =
+    onProfilePage &&
+    viewedEmail?.toLowerCase() === GEORGE_EMAIL &&
+    !myProfileActive; // logged in as George: only "My Profile" is highlighted
+
   return (
     <nav style={styles.bar} aria-label="Main navigation">
       <ul style={styles.group}>
@@ -101,10 +118,29 @@ export default function NavBar() {
             Home
           </NavLink>
         </li>
+        {/* Only when logged in: opens the profile page of the logged-in user */}
+        {user && (
+          <li>
+            <Link
+              to={`/profile?email=${encodeURIComponent(user.email)}`}
+              style={linkStyle({ isActive: myProfileActive })}
+              aria-current={myProfileActive ? "page" : undefined}
+            >
+              My Profile
+            </Link>
+          </li>
+        )}
+        {/* Exhibition link: shown to everyone, logged in or not (temporary).
+           This will show George's Profile with georgerom1999@gmail.com email */}
         <li>
-          <NavLink to="/profile" style={linkStyle}>
+          <Link
+            to={`/profile?email=${encodeURIComponent(GEORGE_EMAIL)}`}
+            state={{ name: "George" }}
+            style={linkStyle({ isActive: georgeProfileActive })}
+            aria-current={georgeProfileActive ? "page" : undefined}
+          >
             George's Profile
-          </NavLink>
+          </Link>
         </li>
       </ul>
 

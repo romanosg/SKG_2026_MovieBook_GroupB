@@ -14,11 +14,6 @@ const styles = {
     fontSize: 14,
     lineHeight: 1.5,
   },
-  heading: {
-    margin: "0 0 20px",
-    fontSize: 20,
-    fontWeight: 600,
-  },
   photoRow: {
     display: "flex",
     alignItems: "center",
@@ -95,6 +90,18 @@ const styles = {
     font: "inherit",
     lineHeight: 1.5,
   },
+  // Filled blue, like the Search and Sign up buttons
+  saveButton: {
+    background: "#8ab4f8",
+    color: "#1b1b1b",
+    border: "none",
+    borderRadius: 6,
+    padding: "6px 14px",
+    fontFamily: "inherit",
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
   label: { fontWeight: 700, marginRight: 4 },
 };
 
@@ -123,7 +130,7 @@ export default function Profile({
     el.style.height = `${el.scrollHeight + borders}px`;
   };
 
-  useEffect(fitAbout, [about]); // whenever the text changes
+  useEffect(fitAbout, [about, canEdit]); // whenever the text changes
   useEffect(() => {
     // text wraps differently when the window width changes
     window.addEventListener("resize", fitAbout);
@@ -176,10 +183,16 @@ export default function Profile({
     });
   };
 
+  // Not functional yet: there is nowhere to store this information
+  const handleSavePhoto = () => {
+    // TODO: save the photo for this user once the server supports it
+  };
+  const handleSaveAbout = () => {
+    // TODO: save "About me" for this user once the server supports it
+  };
+
   return (
     <section style={styles.card}>
-      <h2 style={styles.heading}>George's Profile</h2>
-
       <div style={styles.photoRow}>
         {/* canEdit=true: avatar einai koumpi, canEdit=false: aplo div */}
         {canEdit ? (
@@ -207,7 +220,7 @@ export default function Profile({
 
         {/* 'Change photo' mono an canEdit=true */}
         {canEdit && (
-          <div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
             <button
               type="button"
               style={styles.linkButton}
@@ -218,6 +231,9 @@ export default function Profile({
             <div style={styles.hint}>
               {error ? <span style={{ color: "#ff8a80" }}>{error}</span> : "JPG or PNG, up to 5 MB"}
             </div>
+            <button type="button" style={styles.saveButton} onClick={handleSavePhoto}>
+              Save photo
+            </button>
           </div>
         )}
 
@@ -246,15 +262,22 @@ export default function Profile({
 
       {/* canEdit=true: textarea, canEdit=false: read-only div */}
       {canEdit ? (
-        <textarea
-          ref={aboutRef}
-          style={styles.aboutInput}
-          aria-label="About me"
-          placeholder="Write something about yourself..."
-          value={about}
-          onChange={(e) => updateAbout(e.target.value)}
-          onKeyDown={handleAboutKeyDown}
-        />
+        <>
+          <textarea
+            ref={aboutRef}
+            style={styles.aboutInput}
+            aria-label="About me"
+            placeholder="Write something about yourself..."
+            value={about}
+            onChange={(e) => updateAbout(e.target.value)}
+            onKeyDown={handleAboutKeyDown}
+          />
+          <div style={{ marginTop: 12 }}>
+            <button type="button" style={styles.saveButton} onClick={handleSaveAbout}>
+              Save about me
+            </button>
+          </div>
+        </>
       ) : (
         <div style={styles.aboutReadOnly}>
           {about || <span style={{ color: "#5a5a5a" }}>Nothing written yet.</span>}
