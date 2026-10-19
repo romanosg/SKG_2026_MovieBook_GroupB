@@ -277,7 +277,7 @@ export default function HomePage() {
         </div>
 
         <div style={styles.topContent}>
-          <h1 style={styles.title}>Welcome to Apraisal Film Journal</h1>
+          <h1 style={styles.title}>Welcome to Appraisal Film Journal!</h1>
 
           <form style={styles.searchForm} onSubmit={handleSubmit}>
             <input
