@@ -101,14 +101,16 @@ export default function NavBar() {
   const location = useLocation();
   const onProfilePage = location.pathname === "/profile";
   const viewedEmail = new URLSearchParams(location.search).get("email");
-  const myProfileActive =
-    onProfilePage &&
-    Boolean(user) &&
-    viewedEmail?.toLowerCase() === user.email.toLowerCase();
-  const georgeProfileActive =
-    onProfilePage &&
-    viewedEmail?.toLowerCase() === GEORGE_EMAIL &&
-    !myProfileActive; // logged in as George: only "My Profile" is highlighted
+  const viewed = viewedEmail?.toLowerCase();
+  const viewingGeorge = onProfilePage && viewed === GEORGE_EMAIL;
+  const viewingOwn =
+    onProfilePage && Boolean(user) && viewed === user.email.toLowerCase();
+  const cameFromGeorgeLink = Boolean(location.state?.viaGeorgeLink);
+
+  // Logged in as George, both links open the same profile,
+  // so highlight the one that was actually clicked
+  const georgeProfileActive = viewingGeorge && (!viewingOwn || cameFromGeorgeLink);
+  const myProfileActive = viewingOwn && !(viewingGeorge && cameFromGeorgeLink);
 
   return (
     <nav style={styles.bar} aria-label="Main navigation">
@@ -131,11 +133,11 @@ export default function NavBar() {
           </li>
         )}
         {/* Exhibition link: shown to everyone, logged in or not (temporary).
-           This will show George's Profile with georgerom1999@gmail.com email */}
+            The state passes the display name "George" for the profile heading. */}
         <li>
           <Link
             to={`/profile?email=${encodeURIComponent(GEORGE_EMAIL)}`}
-            state={{ name: "George" }}
+            state={{ name: "George", viaGeorgeLink: true }}
             style={linkStyle({ isActive: georgeProfileActive })}
             aria-current={georgeProfileActive ? "page" : undefined}
           >
