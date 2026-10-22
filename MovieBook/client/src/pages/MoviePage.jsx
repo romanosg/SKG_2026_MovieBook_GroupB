@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useLocation } from "react-router-dom";
+import { slugify } from "../utils/slug";
 import formStyles from "./formStyles";
+import StarRating from "../components/StarRating";
 
 const ACCENT = "#8ab4f8";
 
@@ -63,12 +65,23 @@ const styles = {
     letterSpacing: 2,
   },
   text: { margin: 0, fontSize: 16, lineHeight: 1.6, whiteSpace: "pre-wrap" },
+  reviewRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center", // centered, like the director
+    flexWrap: "wrap",
+    gap: 12,
+    margin: "28px 0 0",
+  },
+  reviewCount: { fontSize: 16 },
   message: { color: "#9a9a9a" },
   errorMessage: { color: "#ff8a80" },
 };
 
 export default function MoviePage() {
-  const { id } = useParams(); // the :id from the address /movies/:id
+  const { id } = useParams(); // the movie's name (or old id) from the address /movies/:id
+  const location = useLocation();
+  const movieId = location.state?.movieId; // set when we arrive by clicking a movie
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -81,12 +94,27 @@ export default function MoviePage() {
       setError("");
       setMovie(null);
       try {
-        const response = await fetch(`/api/movies/${id}`);
-        if (response.status === 400 || response.status === 404) {
-          throw new Error("not-found");
+        // The address holds the movie's name (e.g. "the-dark-knight") or, in old links, an id.
+        // When we arrive by clicking a movie in the list, its id is also passed along.
+        const isDatabaseId = /^[a-f0-9]{24}$/i.test(id);
+        const idToLoad = movieId || (isDatabaseId ? id : null);
+
+        let data;
+        if (idToLoad) {
+          const response = await fetch(`/api/movies/${idToLoad}`);
+          if (response.status === 400 || response.status === 404) {
+            throw new Error("not-found");
+          }
+          if (!response.ok) throw new Error("failed");
+          data = await response.json();
+        } else {
+          // Opened from a typed or shared link: find the movie by its name
+          const response = await fetch("/api/movies");
+          if (!response.ok) throw new Error("failed");
+          const movies = await response.json();
+          data = movies.find((m) => slugify(m.title) === id.toLowerCase());
+          if (!data) throw new Error("not-found");
         }
-        if (!response.ok) throw new Error("failed");
-        const data = await response.json();
         if (!cancelled) setMovie(data);
       } catch (err) {
         if (!cancelled) {
@@ -105,7 +133,12 @@ export default function MoviePage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, movieId]);
+
+  // Public reviews aren't implemented yet, so these are 0 for now.
+  // Once the server sends reviewCount / averageRating (0 to 5), they show up here.
+  const reviewCount = movie?.reviewCount ?? 0;
+  const averageRating = movie?.averageRating ?? 0;
 
   return (
     <main style={formStyles.page}>
@@ -139,11 +172,18 @@ export default function MoviePage() {
                 </ul>
               )}
 
-              <h2 style={styles.sectionLabel}>Director</h2>
-              <p style={styles.text}>{movie.director}</p>
+              <h2 style={{ ...styles.sectionLabel, textAlign: "center" }}>Director</h2>
+              <p style={{ ...styles.text, textAlign: "center" }}>{movie.director}</p>
 
-              <h2 style={styles.sectionLabel}>Description</h2>
-              <p style={styles.text}>{movie.description}</p>
+              <h2 style={{ ...styles.sectionLabel, textAlign: "left" }}>Description</h2>
+              <p style={{ ...styles.text, textAlign: "left" }}>{movie.description}</p>
+
+              <div style={styles.reviewRow}>
+                <span style={styles.reviewCount}>
+                  {reviewCount} public {reviewCount === 1 ? "review" : "reviews"}
+                </span>
+                <StarRating rating={averageRating} size={66} />
+              </div>
             </div>
           </div>
         )}

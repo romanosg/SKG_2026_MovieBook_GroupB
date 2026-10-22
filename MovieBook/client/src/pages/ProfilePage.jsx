@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams, useLocation } from "react-router-dom";
+import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import Profile from "../components/Profile";
 import formStyles from "./formStyles";
 
@@ -8,6 +8,7 @@ import formStyles from "./formStyles";
 export default function ProfilePage() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Who is logged in (read from localStorage)
   const [loggedUser, setLoggedUser] = useState(() => {
@@ -82,6 +83,15 @@ export default function ProfilePage() {
     Boolean(loggedUser?.email) &&
     loggedUser.email.toLowerCase() === profileData.email.toLowerCase();
 
+  // Deleting accounts isn't functional yet: for now "Yes" only logs the user out
+  const handleDeleteAccount = () => {
+    // TODO: delete the account on the server first
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.dispatchEvent(new Event("authChange"));
+    navigate("/");
+  };
+
   // No email in the address and nobody logged in
   if (!profileEmail) {
     return (
@@ -105,7 +115,7 @@ export default function ProfilePage() {
     age = "Unavailable";
   }
 
-  // Users don't have a name yet: For now, we use a name passed by the link we came from,
+  // Users don't have a name stored yet: use a name passed by the link we came from,
   // otherwise the start of the email (used for the photo's letter)
   const name = location.state?.name || profileEmail.split("@")[0];
 
@@ -118,6 +128,7 @@ export default function ProfilePage() {
         email={email}
         age={age}
         canEdit={canEdit}
+        onDeleteAccount={handleDeleteAccount}
       />
     </main>
   );
