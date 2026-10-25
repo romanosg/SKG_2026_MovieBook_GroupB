@@ -121,6 +121,41 @@ router.get('/check', authMiddleware, async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 });
+// GET /api/user-reviews/public
+// Εμφάνιση μόνο δημόσιων κριτικών
+router.get('/public', async (req, res) => {
+  try {
+    const reviews = await UserReview.find({ isPrivate: false })
+      .populate('user_id', 'email')
+      .populate('movie_id')
+      .sort({ reviewDate: -1 });
+
+    return res.status(200).json(reviews);
+  } catch (error) {
+    console.error('Get public reviews error:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+ // GET /api/user-reviews/private
+// Εμφάνιση μόνο των ιδιωτικών κριτικών του συνδεδεμένου χρήστη
+router.get('/private', authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.userId;
+
+    const reviews = await UserReview.find({
+      user_id,
+      isPrivate: true
+    })
+      .populate('movie_id')
+      .sort({ reviewDate: -1 });
+
+    return res.status(200).json(reviews);
+  } catch (error) {
+    console.error('Get private reviews error:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // PUT /api/user-reviews/:reviewId
 // Ενημέρωση μόνο από τον ιδιοκτήτη της κριτικής

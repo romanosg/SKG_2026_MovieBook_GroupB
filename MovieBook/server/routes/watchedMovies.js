@@ -2,6 +2,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const WatchedMovie = require('../models/WatchedMovie');
+const authMiddleware = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const Movie = require('../models/Movie');
 
@@ -9,9 +10,10 @@ const router = express.Router();
 
 // POST /api/watched-movies
 // Καταχώριση ταινίας που παρακολούθησε ο χρήστης
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { user_id, movie_id, rating, review, watchedAt } = req.body;
+    const { movie_id, rating, review, watchedAt } = req.body;
+const user_id = req.user.userId;
 
     if (!mongoose.isValidObjectId(user_id)) {
       return res.status(400).json({ message: 'Invalid user_id' });
