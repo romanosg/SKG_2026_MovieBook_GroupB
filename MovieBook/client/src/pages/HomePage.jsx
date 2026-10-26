@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { slugify } from "../utils/slug";
 import formStyles from "./formStyles";
+import PageLayout from "../components/PageLayout";
 import logo from "../assets/AFJ_circle_logo_1.png";
 
 // Maximum number of movies shown on one page (change this to show more or fewer)
@@ -329,7 +330,7 @@ export default function HomePage() {
   };
 
   return (
-    <main style={formStyles.page}>
+    <PageLayout>
       {/* Movie titles are underlined only while hovered */}
       <style>{`
         .movie-title-link {
@@ -555,6 +556,6 @@ export default function HomePage() {
           </form>
         </nav>
       )}
-    </main>
+    </PageLayout>
   );
 }

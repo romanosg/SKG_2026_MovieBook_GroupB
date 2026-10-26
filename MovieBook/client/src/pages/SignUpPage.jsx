@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import formStyles from "./formStyles";
+import PageLayout from "../components/PageLayout";
 import { isValidEmail, getPasswordRules, isValidPassword } from "../utils/validation";
 
 const COLORS = { neutral: "#4a4a4a", red: "#e5534b", green: "#3fb950", gray: "#9a9a9a" };
@@ -147,7 +148,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <main style={formStyles.page}>
+    <PageLayout>
       {/* Hides the browser's built-in "reveal password" icon (Edge) */}
       <style>{`
         .pw-input::-ms-reveal,
@@ -299,6 +300,6 @@ export default function SignUpPage() {
           {loading ? "Creating account..." : "Create account"}
         </button>
       </form>
-    </main>
+    </PageLayout>
   );
 }

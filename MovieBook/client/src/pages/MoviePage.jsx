@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { slugify } from "../utils/slug";
-import formStyles from "./formStyles";
+import PageLayout from "../components/PageLayout";
 import StarRating from "../components/StarRating";
 
 const ACCENT = "#8ab4f8";
@@ -141,7 +141,7 @@ export default function MoviePage() {
   const averageRating = movie?.averageRating ?? 0;
 
   return (
-    <main style={formStyles.page}>
+    <PageLayout>
       <div style={styles.wrapper}>
         <Link to="/" style={styles.back}>
           ← Back to movies
@@ -188,6 +188,6 @@ export default function MoviePage() {
           </div>
         )}
       </div>
-    </main>
+    </PageLayout>
   );
 }

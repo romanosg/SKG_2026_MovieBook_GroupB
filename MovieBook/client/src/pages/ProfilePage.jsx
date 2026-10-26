@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import Profile from "../components/Profile";
-import formStyles from "./formStyles";
+import PageLayout from "../components/PageLayout";
 
 // Shows the profile of the email in the address: /profile?email=someone@example.com
 // Without an email it shows the logged-in user's own profile.
@@ -77,11 +77,16 @@ export default function ProfilePage() {
     };
   }, [profileEmail]);
 
-  // The viewer can edit only if their email matches the email of the profile being viewed
-  const canEdit =
-    status === "found" &&
+  // The viewer owns this profile when they are logged in with the very email being viewed.
+  // This doesn't wait for the profile data from the server: a slow or failed load
+  // must not take the profile away from its owner.
+  const isOwner =
     Boolean(loggedUser?.email) &&
-    loggedUser.email.toLowerCase() === profileData.email.toLowerCase();
+    Boolean(profileEmail) &&
+    loggedUser.email.trim().toLowerCase() === profileEmail.trim().toLowerCase();
+
+  // The owner can edit, unless the server says no user has this email
+  const canEdit = isOwner && status !== "notfound";
 
   // Deleting accounts isn't functional yet: for now "Yes" only logs the user out
   const handleDeleteAccount = () => {
@@ -92,12 +97,17 @@ export default function ProfilePage() {
     navigate("/");
   };
 
+  // "Go See My Reviews": opens the reviews page of the profile being viewed
+  const handleSeeReviews = () => {
+    navigate(`/reviews?email=${encodeURIComponent(profileEmail)}`);
+  };
+
   // No email in the address and nobody logged in
   if (!profileEmail) {
     return (
-      <main style={{ ...formStyles.page, flex: 1 }}>
+      <PageLayout>
         <p style={{ color: "#9a9a9a" }}>No profile selected.</p>
-      </main>
+      </PageLayout>
     );
   }
 
@@ -120,7 +130,7 @@ export default function ProfilePage() {
   const name = location.state?.name || profileEmail.split("@")[0];
 
   return (
-    <main style={{ ...formStyles.page, flex: 1, display: "flex" }}>
+    <PageLayout style={{ display: "flex" }}>
       {/* key: switching between profiles starts the card fresh */}
       <Profile
         key={profileEmail}
@@ -129,7 +139,8 @@ export default function ProfilePage() {
         age={age}
         canEdit={canEdit}
         onDeleteAccount={handleDeleteAccount}
+        onSeeReviews={handleSeeReviews}
       />
-    </main>
+    </PageLayout>
   );
 }

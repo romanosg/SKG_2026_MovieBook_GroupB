@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import formStyles from "./formStyles";
+import PageLayout from "../components/PageLayout";
 import { isValidEmail, isValidPassword } from "../utils/validation";
 
 const styles = {
@@ -79,7 +80,7 @@ export default function SignInPage() {
   };
 
   return (
-    <main style={formStyles.page}>
+    <PageLayout>
       {/* Hides the browser's built-in "reveal password" icon (Edge) */}
       <style>{`
         .pw-input::-ms-reveal,
@@ -145,6 +146,6 @@ export default function SignInPage() {
           </button>
         </div>
       </form>
-    </main>
+    </PageLayout>
   );
 }

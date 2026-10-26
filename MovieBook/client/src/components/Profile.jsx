@@ -213,6 +213,7 @@ export default function Profile({
   onAboutChange, // optional: called with the new About me text
   onPhotoChange, // optional: called with the new photo as a data URL
   onDeleteAccount, // optional: called after the user confirms deleting their account
+  onSeeReviews, // optional: called when "Go See My Reviews" is clicked
 }) {
   const [photo, setPhoto] = useState(avatarUrl);
   const [about, setAbout] = useState(initialAbout);
@@ -307,7 +308,7 @@ export default function Profile({
     // TODO: save "About me" for this user once the server supports it
   };
   const handleSeeReviews = () => {
-    // TODO: go to this user's reviews page once it exists
+    onSeeReviews?.(); // the page decides where this leads (see ProfilePage)
   };
 
   return (
@@ -439,12 +440,14 @@ export default function Profile({
         </div>
       )}
 
-      {/* Not functional yet: there is no reviews page */}
-      <div style={{ marginTop: 24 }}>
-        <button type="button" style={styles.saveButton} onClick={handleSeeReviews}>
-          Go See My Reviews
-        </button>
-      </div>
+      {/* Only for the profile's owner */}
+      {canEdit && (
+        <div style={{ marginTop: 24 }}>
+          <button type="button" style={styles.saveButton} onClick={handleSeeReviews}>
+            Go See My Reviews
+          </button>
+        </div>
+      )}
 
       {confirmOpen && (
         <div style={styles.overlay} onClick={() => setConfirmOpen(false)}>
