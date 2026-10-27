@@ -11,8 +11,8 @@ const styles = {
     justifyContent: "space-between",
     flexWrap: "wrap",
     gap: 12,
-    background: "#1b1b1b",
-    borderBottom: "1px solid #3a3a3a",
+    background: "var(--page-navbar)",
+    borderBottom: "1px solid var(--page-border-soft)",
     padding: "12px 24px",
     fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
     fontSize: 14,
@@ -26,17 +26,17 @@ const styles = {
     padding: 0,
   },
   signUp: {
-    color: "#1b1b1b",
-    background: "#8ab4f8",
+    color: "var(--page-text-on-accent)",
+    background: "var(--page-accent)",
     padding: "6px 14px",
     borderRadius: 6,
     textDecoration: "none",
     fontWeight: 600,
   },
   logOut: {
-    color: "#e5534b",
+    color: "var(--page-danger)",
     background: "transparent",
-    border: "1px solid #e5534b",
+    border: "1px solid var(--page-danger)",
     padding: "6px 14px",
     borderRadius: 6,
     fontWeight: 600,
@@ -45,7 +45,7 @@ const styles = {
     fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
   },
   emailDisplay: {
-    color: "#8ab4f8",
+    color: "var(--page-accent)",
     fontSize: 13,
     maxWidth: 200,
     overflow: "hidden",
@@ -56,10 +56,10 @@ const styles = {
 
 // NavLink tells us whether the link matches the current URL
 const linkStyle = ({ isActive }) => ({
-  color: isActive ? "#ffffff" : "#bdbdbd",
+  color: isActive ? "var(--page-text-strong)" : "var(--page-text-soft)",
   textDecoration: "none",
   paddingBottom: 2,
-  borderBottom: isActive ? "2px solid #8ab4f8" : "2px solid transparent",
+  borderBottom: isActive ? "2px solid var(--page-accent)" : "2px solid transparent",
 });
 
 export default function NavBar() {

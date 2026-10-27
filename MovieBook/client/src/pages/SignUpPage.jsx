@@ -4,7 +4,7 @@ import formStyles from "./formStyles";
 import PageLayout from "../components/PageLayout";
 import { isValidEmail, getPasswordRules, isValidPassword } from "../utils/validation";
 
-const COLORS = { neutral: "#4a4a4a", red: "#e5534b", green: "#3fb950", gray: "#9a9a9a" };
+const COLORS = { neutral: "var(--page-border)", red: "var(--page-danger)", green: "var(--page-success)", gray: "var(--page-text-muted)" };
 
 const styles = {
   dateRow: {
@@ -24,7 +24,7 @@ const styles = {
     background: "none",
     border: "none",
     padding: 0,
-    color: "#8ab4f8",
+    color: "var(--page-accent)",
     fontSize: 12,
     cursor: "pointer",
   },
@@ -148,7 +148,7 @@ export default function SignUpPage() {
   };
 
   return (
-    <PageLayout>
+    <PageLayout page="signUp">
       {/* Hides the browser's built-in "reveal password" icon (Edge) */}
       <style>{`
         .pw-input::-ms-reveal,

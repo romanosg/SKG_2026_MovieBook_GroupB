@@ -24,6 +24,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /*background: #ff0000;*/ /*Changing side's background color if palette needs to change. Check client/src/utils/theme.js to change rest*/
 
   @media (max-width: 1024px) {
     font-size: 16px;

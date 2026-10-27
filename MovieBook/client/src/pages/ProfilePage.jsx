@@ -50,7 +50,7 @@ export default function ProfilePage() {
     const loadProfile = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3000/api/auth/user-info?email=${encodeURIComponent(profileEmail)}`
+          `http://localhost:3000/api/user/user-info?email=${encodeURIComponent(profileEmail)}`
         );
         // The server answers in JSON. If it isn't JSON (e.g. the route is missing), data is null.
         const data = await response.json().catch(() => null);
@@ -105,8 +105,8 @@ export default function ProfilePage() {
   // No email in the address and nobody logged in
   if (!profileEmail) {
     return (
-      <PageLayout>
-        <p style={{ color: "#9a9a9a" }}>No profile selected.</p>
+      <PageLayout page="profile">
+        <p style={{ color: "var(--page-text-muted)" }}>No profile selected.</p>
       </PageLayout>
     );
   }
@@ -130,7 +130,7 @@ export default function ProfilePage() {
   const name = location.state?.name || profileEmail.split("@")[0];
 
   return (
-    <PageLayout style={{ display: "flex" }}>
+    <PageLayout page="profile" style={{ display: "flex" }}>
       {/* key: switching between profiles starts the card fresh */}
       <Profile
         key={profileEmail}

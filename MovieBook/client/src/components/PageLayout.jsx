@@ -1,53 +1,56 @@
-import React from "react";
+import React, { useLayoutEffect, useMemo } from "react";
 import {
   DEFAULT_PALETTE,
   DEFAULT_CORNER_WIDTH,
   PaletteContext,
+  applyPalette,
+  getPagePalette,
 } from "../utils/theme";
 
 const FONT = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
 
-// The base structure of a page: background, text color, font and the space around the content.
+// The base structure of a page: colors, font and the space around the content.
 //
-//   <PageLayout>...</PageLayout>
-//   <PageLayout palette={{ accent: "#f5b301" }} cornerWidth={{ x: 40, y: 24 }}>...</PageLayout>
+//   <PageLayout page="home">...</PageLayout>
 //
-// palette:     any of background, text, accent, surface, border (the rest keep their default)
+// page:        which page this is. Its colors come from PAGE_PALETTES in utils/theme.js
+//              (home, movie, profile, reviews, signIn, signUp). Unknown = default colors.
+// palette:     optional extra colors for this one use, on top of the page's colors
 // cornerWidth: space between the page's edges and its content, in pixels:
 //              one number for every side, or { x, y } for left/right and top/bottom
-// style:       extra styles for this page only, e.g. style={{ display: "flex" }}
+// style:       extra styles, e.g. style={{ display: "flex" }}
 //
-// Colors in other components: usePalette() works in components rendered INSIDE the layout.
-// A page that renders <PageLayout> itself is outside it, so there use CSS variables instead,
-// e.g. color: "var(--page-accent)".
+// While a page is open its colors are applied to the WHOLE document, so the header bar
+// and the page sides follow it too. Everything reads them with var(--page-...).
 export default function PageLayout({
+  page,
   palette,
   cornerWidth = DEFAULT_CORNER_WIDTH,
   style,
   children,
 }) {
-  const colors = { ...DEFAULT_PALETTE, ...palette };
+  const overridesKey = JSON.stringify(palette ?? {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const colors = useMemo(() => getPagePalette(page, palette), [page, overridesKey]);
+
+  // Before the page is drawn: apply its colors. When it closes: back to the defaults.
+  useLayoutEffect(() => {
+    applyPalette(colors);
+    return () => applyPalette(DEFAULT_PALETTE);
+  }, [colors]);
 
   const x = typeof cornerWidth === "number" ? cornerWidth : cornerWidth.x ?? DEFAULT_CORNER_WIDTH;
   const y = typeof cornerWidth === "number" ? cornerWidth : cornerWidth.y ?? DEFAULT_CORNER_WIDTH;
 
   return (
-    // Components inside can read the colors with usePalette()
     <PaletteContext.Provider value={colors}>
       <main
         style={{
-          // The same colors as CSS variables, for <style> blocks: var(--page-accent)
-          "--page-background": colors.background,
-          "--page-text": colors.text,
-          "--page-accent": colors.accent,
-          "--page-surface": colors.surface,
-          "--page-border": colors.border,
-
           flex: 1, // fills the space under the header bar
           width: "100%",
           boxSizing: "border-box",
-          background: colors.background,
-          color: colors.text,
+          background: "var(--page-background)",
+          color: "var(--page-text)",
           padding: `${y}px ${x}px`,
           fontFamily: FONT,
           ...style,

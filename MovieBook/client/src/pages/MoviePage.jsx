@@ -4,7 +4,7 @@ import { slugify } from "../utils/slug";
 import PageLayout from "../components/PageLayout";
 import StarRating from "../components/StarRating";
 
-const ACCENT = "#8ab4f8";
+const ACCENT = "var(--page-accent)";
 
 const styles = {
   wrapper: { maxWidth: 1000, margin: "0 auto" },
@@ -26,21 +26,21 @@ const styles = {
     width: "min(100%, 320px)",
     height: "auto",
     borderRadius: 10,
-    background: "#242424",
+    background: "var(--page-surface)",
   },
   posterPlaceholder: {
     width: "min(100%, 320px)",
     aspectRatio: "2 / 3",
     borderRadius: 10,
-    background: "#242424",
-    color: "#9a9a9a",
+    background: "var(--page-surface)",
+    color: "var(--page-text-muted)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
   },
   details: { flex: 1, minWidth: 260 },
   title: { margin: 0, fontSize: 40, fontWeight: 700, lineHeight: 1.15 },
-  year: { margin: "6px 0 0", fontSize: 18, color: "#9a9a9a" },
+  year: { margin: "6px 0 0", fontSize: 18, color: "var(--page-text-muted)" },
   genres: {
     display: "flex",
     flexWrap: "wrap",
@@ -74,8 +74,8 @@ const styles = {
     margin: "28px 0 0",
   },
   reviewCount: { fontSize: 16 },
-  message: { color: "#9a9a9a" },
-  errorMessage: { color: "#ff8a80" },
+  message: { color: "var(--page-text-muted)" },
+  errorMessage: { color: "var(--page-danger-text)" },
 };
 
 export default function MoviePage() {
@@ -141,7 +141,7 @@ export default function MoviePage() {
   const averageRating = movie?.averageRating ?? 0;
 
   return (
-    <PageLayout>
+    <PageLayout page="movie">
       <div style={styles.wrapper}>
         <Link to="/" style={styles.back}>
           ← Back to movies

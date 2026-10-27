@@ -13,7 +13,7 @@ function Star({ fill, size, filledColor, emptyColor }) {
     <span style={{ position: "relative", display: "inline-block", width: size, height: size }}>
       {/* empty star underneath */}
       <svg width={size} height={size} viewBox="0 0 24 24" style={{ display: "block" }} aria-hidden="true">
-        <path d={STAR_PATH} fill={emptyColor} />
+        <path d={STAR_PATH} style={{ fill: emptyColor }} />
       </svg>
       {/* filled star on top, cut off at the fill percentage */}
       <span
@@ -27,7 +27,7 @@ function Star({ fill, size, filledColor, emptyColor }) {
         }}
       >
         <svg width={size} height={size} viewBox="0 0 24 24" style={{ display: "block" }} aria-hidden="true">
-          <path d={STAR_PATH} fill={filledColor} />
+          <path d={STAR_PATH} style={{ fill: filledColor }} />
         </svg>
       </span>
     </span>
@@ -38,8 +38,8 @@ function Star({ fill, size, filledColor, emptyColor }) {
 export default function StarRating({
   rating = 0,
   size = 22,
-  filledColor = "#f5b301",
-  emptyColor = "#4a4a4a",
+  filledColor = "var(--page-star)",
+  emptyColor = "var(--page-border)",
 }) {
   const value = Math.min(5, Math.max(0, Number(rating) || 0));
   const label = `${value.toFixed(1)} out of 5`;

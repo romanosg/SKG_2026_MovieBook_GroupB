@@ -14,7 +14,7 @@ const styles = {
     background: "none",
     border: "none",
     padding: 0,
-    color: "#8ab4f8",
+    color: "var(--page-accent)",
     fontSize: 12,
     cursor: "pointer",
   },
@@ -23,7 +23,7 @@ const styles = {
     background: "none",
     border: "none",
     padding: 0,
-    color: "#8ab4f8",
+    color: "var(--page-accent)",
     fontSize: 14,
     cursor: "pointer",
   },
@@ -80,7 +80,7 @@ export default function SignInPage() {
   };
 
   return (
-    <PageLayout>
+    <PageLayout page="signIn">
       {/* Hides the browser's built-in "reveal password" icon (Edge) */}
       <style>{`
         .pw-input::-ms-reveal,

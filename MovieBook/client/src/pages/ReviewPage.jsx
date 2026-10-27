@@ -39,7 +39,13 @@ const compare = {
 // The colors come from the page's palette (CSS variables set by PageLayout)
 const styles = {
   title: { margin: "0 0 20px", fontSize: 32, fontWeight: 700, overflowWrap: "anywhere" },
-  controls: { display: "flex", flexWrap: "wrap", gap: 20, alignItems: "center" },
+  controls: {
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "center", // the filters sit in the middle of the page
+    gap: 20,
+    alignItems: "center",
+  },
   control: { display: "flex", alignItems: "center", gap: 10 },
   controlLabel: {
     color: "var(--page-accent)",
@@ -58,8 +64,8 @@ const styles = {
     colorScheme: "dark",
     cursor: "pointer",
   },
-  count: { margin: "20px 0 0", color: "#9a9a9a" },
-  message: { margin: "16px 0 0", color: "#9a9a9a" },
+  count: { margin: "20px 0 0", color: "var(--page-text-muted)" },
+  message: { margin: "16px 0 0", color: "var(--page-text-muted)" },
   list: {
     listStyle: "none",
     margin: "16px 0 0",
@@ -94,7 +100,7 @@ const styles = {
     gap: 12,
     margin: "8px 0 0",
     fontSize: 13,
-    color: "#9a9a9a",
+    color: "var(--page-text-muted)",
   },
   chip: {
     border: "1px solid var(--page-accent)",
@@ -144,7 +150,7 @@ export default function ReviewPage() {
   // Nobody is logged in and no email in the address
   if (!reviewsEmail) {
     return (
-      <PageLayout>
+      <PageLayout page="reviews">
         <p style={styles.message}>
           Please{" "}
           <Link to="/sign-in" style={{ color: "var(--page-accent)" }}>
@@ -174,7 +180,7 @@ export default function ReviewPage() {
   const heading = isOwn ? "My Reviews" : `${reviewsEmail.split("@")[0]}'s Reviews`;
 
   return (
-    <PageLayout>
+    <PageLayout page="reviews">
       <h1 style={styles.title}>{heading}</h1>
 
       <div style={styles.controls}>

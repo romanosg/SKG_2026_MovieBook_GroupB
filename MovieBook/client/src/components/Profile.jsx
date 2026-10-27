@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 
 const styles = {
   card: {
-    background: "#242424",
-    color: "#e8e8e8",
-    borderLeft: "3px solid #4a4a4a",
+    background: "var(--page-surface)",
+    color: "var(--page-text)",
+    borderLeft: "3px solid var(--page-border)",
     padding: "20px 24px",
     flex: 1,
     width: "100%",
@@ -24,8 +24,8 @@ const styles = {
     width: 72,
     height: 72,
     borderRadius: "50%",
-    background: "#8b95a7",
-    color: "#fff",
+    background: "var(--page-avatar)",
+    color: "var(--page-text-strong)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -40,8 +40,8 @@ const styles = {
     width: 72,
     height: 72,
     borderRadius: "50%",
-    background: "#8b95a7",
-    color: "#fff",
+    background: "var(--page-avatar)",
+    color: "var(--page-text-strong)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -53,12 +53,12 @@ const styles = {
     background: "none",
     border: "none",
     padding: 0,
-    color: "#8ab4f8",
+    color: "var(--page-accent)",
     cursor: "pointer",
     font: "inherit",
     textDecoration: "underline",
   },
-  hint: { fontSize: 12, color: "#9a9a9a", marginTop: 2 },
+  hint: { fontSize: 12, color: "var(--page-text-muted)", marginTop: 2 },
   row: { margin: "0 0 12px" },
   aboutHeading: { margin: "24px 0 8px", fontSize: 16, fontWeight: 700 },
   aboutInput: {
@@ -66,9 +66,9 @@ const styles = {
     width: "100%",
     minHeight: 280,
     boxSizing: "border-box",
-    background: "#1b1b1b",
-    color: "#e8e8e8",
-    border: "1px solid #4a4a4a",
+    background: "var(--page-surface-dark)",
+    color: "var(--page-text)",
+    border: "1px solid var(--page-border)",
     borderRadius: 6,
     padding: "10px 12px",
     font: "inherit",
@@ -82,9 +82,9 @@ const styles = {
     width: "100%",
     minHeight: 100,
     boxSizing: "border-box",
-    background: "#1b1b1b",
-    color: "#9a9a9a",
-    border: "1px solid #3a3a3a",
+    background: "var(--page-surface-dark)",
+    color: "var(--page-text-muted)",
+    border: "1px solid var(--page-border-soft)",
     borderRadius: 6,
     padding: "10px 12px",
     font: "inherit",
@@ -92,8 +92,8 @@ const styles = {
   },
   // Filled blue, like the Search and Sign up buttons
   saveButton: {
-    background: "#8ab4f8",
-    color: "#1b1b1b",
+    background: "var(--page-accent)",
+    color: "var(--page-text-on-accent)",
     border: "none",
     borderRadius: 6,
     padding: "6px 14px",
@@ -125,12 +125,12 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
-    color: "#bdbdbd",
+    color: "var(--page-text-soft)",
     fontSize: 13,
     cursor: "pointer",
     flexShrink: 0,
   },
-  checkbox: { accentColor: "#8ab4f8", cursor: "pointer", margin: 0, width: 26, height: 26 },
+  checkbox: { accentColor: "var(--page-accent)", cursor: "pointer", margin: 0, width: 26, height: 26 },
   // Header row: title on the left, Delete account on the right
   headerRow: {
     display: "flex",
@@ -141,8 +141,8 @@ const styles = {
     margin: "0 0 20px",
   },
   deleteButton: {
-    background: "#e5534b",
-    color: "#ffffff",
+    background: "var(--page-danger)",
+    color: "var(--page-text-strong)",
     border: "none",
     borderRadius: 6,
     padding: "8px 16px",
@@ -155,7 +155,7 @@ const styles = {
   overlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0, 0, 0, 0.6)",
+    background: "var(--page-overlay)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -163,9 +163,9 @@ const styles = {
     zIndex: 1000,
   },
   dialog: {
-    background: "#242424",
-    color: "#e8e8e8",
-    border: "1px solid #4a4a4a",
+    background: "var(--page-surface)",
+    color: "var(--page-text)",
+    border: "1px solid var(--page-border)",
     borderRadius: 10,
     padding: 24,
     width: "100%",
@@ -177,8 +177,8 @@ const styles = {
   dialogText: { margin: "0 0 20px" },
   dialogButtons: { display: "flex", justifyContent: "center", gap: 12 },
   yesButton: {
-    background: "#e5534b",
-    color: "#ffffff",
+    background: "var(--page-danger)",
+    color: "var(--page-text-strong)",
     border: "none",
     borderRadius: 6,
     padding: "8px 24px",
@@ -189,8 +189,8 @@ const styles = {
   },
   // Filled blue, like the Search and Sign up buttons
   noButton: {
-    background: "#8ab4f8",
-    color: "#1b1b1b",
+    background: "var(--page-accent)",
+    color: "var(--page-text-on-accent)",
     border: "none",
     borderRadius: 6,
     padding: "8px 24px",
@@ -363,7 +363,7 @@ export default function Profile({
               {photo ? "Change photo" : "Upload photo"}
             </button>
             <div style={styles.hint}>
-              {error ? <span style={{ color: "#ff8a80" }}>{error}</span> : "JPG or PNG, up to 5 MB"}
+              {error ? <span style={{ color: "var(--page-danger-text)" }}>{error}</span> : "JPG or PNG, up to 5 MB"}
             </div>
             <button type="button" style={styles.saveButton} onClick={handleSavePhoto}>
               Save photo
@@ -436,7 +436,7 @@ export default function Profile({
         </>
       ) : (
         <div style={styles.aboutReadOnly}>
-          {about || <span style={{ color: "#5a5a5a" }}>Nothing written yet.</span>}
+          {about || <span style={{ color: "var(--page-text-faint)" }}>Nothing written yet.</span>}
         </div>
       )}
 
