@@ -31,10 +31,7 @@ router.get('/search', async (req, res) => {
     const searchTerm = query.trim();
 
     // Escape special regex characters so the input is treated as plain text
-    const escapedTerm = searchTerm.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      '\\$&'
-    );
+    const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     const regex = new RegExp(escapedTerm, 'i');
 

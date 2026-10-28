@@ -1,25 +1,21 @@
 
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
-
+const UserReview = require('../models/UserReview');
+const WatchedMovie = require('../models/WatchedMovie');
 const router = express.Router();
 
-// Calculating user's age in whole years
+// Calculate user's age in whole years
 function calculateAge(dateOfBirth) {
-  const nowGmt3 = new Date(Date.now() + 3 * 60 * 60 * 1000);
+  const today = new Date();
+  let age = today.getFullYear() - dateOfBirth.getFullYear();
 
-  let age =
-    nowGmt3.getUTCFullYear() - dateOfBirth.getUTCFullYear();
-
-  const monthDiff =
-    nowGmt3.getUTCMonth() - dateOfBirth.getUTCMonth();
+  const monthDiff = today.getMonth() - dateOfBirth.getMonth();
 
   if (
     monthDiff < 0 ||
-    (monthDiff === 0 &&
-      nowGmt3.getUTCDate() < dateOfBirth.getUTCDate())
+    (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())
   ) {
     age--;
   }
@@ -30,27 +26,108 @@ function calculateAge(dateOfBirth) {
 // GET /api/user/profile
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId)
-      .select('-password');
+    const user = await User.findById(req.user.userId).select('-password');
 
     if (!user) {
-      return res.status(404).json({
-        message: 'User not found.',
-      });
+      return res.status(404).json({ message: 'User not found.' });
     }
 
     return res.status(200).json({
       user: {
         id: user._id,
         email: user.email,
+        username: user.username,
         dateOfBirth: user.dateOfBirth,
+        photo: user.photo,
+        aboutMe: user.aboutMe,
+        hideEmail: user.hideEmail,
+        hideAge: user.hideAge,
       },
     });
   } catch (error) {
     console.error('Profile error:', error);
-
     return res.status(500).json({
       message: 'An error occurred while fetching the profile.',
+    });
+  }
+});
+
+// PUT /api/user/profile
+// Update profile photo, about me and privacy settings
+router.put('/profile', authMiddleware, async (req, res) => {
+  try {
+    const { photo, aboutMe, hideEmail, hideAge } = req.body;
+    const updates = {};
+
+    if (photo !== undefined) {
+      if (typeof photo !== 'string') {
+        return res.status(400).json({
+          message: 'Photo must be a string URL or path.',
+        });
+      }
+      updates.photo = photo.trim();
+    }
+
+    if (aboutMe !== undefined) {
+      if (typeof aboutMe !== 'string' || aboutMe.length > 500) {
+        return res.status(400).json({
+          message: 'About me must be text of at most 500 characters.',
+        });
+      }
+      updates.aboutMe = aboutMe.trim();
+    }
+
+    if (hideEmail !== undefined) {
+      if (typeof hideEmail !== 'boolean') {
+        return res.status(400).json({
+          message: 'hideEmail must be true or false.',
+        });
+      }
+      updates.hideEmail = hideEmail;
+    }
+
+    if (hideAge !== undefined) {
+      if (typeof hideAge !== 'boolean') {
+        return res.status(400).json({
+          message: 'hideAge must be true or false.',
+        });
+      }
+      updates.hideAge = hideAge;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        message: 'No valid profile fields provided.',
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.userId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    return res.status(200).json({
+      message: 'Profile updated successfully.',
+      user: {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        dateOfBirth: user.dateOfBirth,
+        photo: user.photo,
+        aboutMe: user.aboutMe,
+        hideEmail: user.hideEmail,
+        hideAge: user.hideAge,
+      },
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    return res.status(500).json({
+      message: 'An error occurred while updating the profile.',
     });
   }
 });
@@ -68,28 +145,94 @@ router.get('/user-info', async (req, res) => {
 
     const user = await User.findOne({
       email: email.trim().toLowerCase(),
-    }).select('email dateOfBirth');
+    }).select('email username dateOfBirth photo aboutMe hideEmail hideAge');
 
     if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const publicUser = {
+      username: user.username,
+      photo: user.photo,
+      aboutMe: user.aboutMe,
+    };
+
+    if (!user.hideEmail) {
+      publicUser.email = user.email;
+    }
+
+    if (!user.hideAge) {
+      publicUser.age = calculateAge(user.dateOfBirth);
+    }
+
+    return res.status(200).json({ user: publicUser });
+  } catch (error) {
+    console.error('User info error:', error);
+    return res.status(500).json({
+      message: 'An error occurred while fetching the user.',
+    });
+  }
+});
+
+// DELETE /api/user/account
+
+router.delete('/account', authMiddleware, async (req, res) => {
+  let session;
+
+  try {
+    session = await User.startSession();
+
+    let deleted = false;
+    const userId = req.user.userId;
+
+    await session.withTransaction(async () => {
+      const user = await User.findById(userId).session(session);
+
+      if (!user) {
+        return;
+      }
+
+      await UserReview.deleteMany(
+        { user_id: userId },
+        { session }
+      );
+
+      await WatchedMovie.deleteMany(
+        { user_id: userId },
+        { session }
+      );
+
+      await User.deleteOne(
+        { _id: userId },
+        { session }
+      );
+
+      deleted = true;
+    });
+
+    if (!deleted) {
       return res.status(404).json({
         message: 'User not found.',
       });
     }
 
     return res.status(200).json({
-      user: {
-        email: user.email,
-        age: calculateAge(user.dateOfBirth),
-      },
+      message: 'Account and related data deleted successfully.',
     });
   } catch (error) {
-    console.error('User info error:', error);
+    console.error('Account deletion error:', error);
 
     return res.status(500).json({
-      message: 'An error occurred while fetching the user.',
+      message: 'An error occurred while deleting the account.',
     });
+  } finally {
+    if (session) {
+      await session.endSession();
+    }
   }
 });
-console.log('USER ROUTES FILE REACHED END');
-console.log('Router type:', typeof router);
+
+
+
+
 module.exports = router;

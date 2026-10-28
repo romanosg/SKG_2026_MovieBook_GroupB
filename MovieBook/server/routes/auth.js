@@ -9,18 +9,29 @@ const router = express.Router();
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, dateOfBirth } = req.body;
+    const { email, username, password, dateOfBirth } = req.body;
 
     if (
       typeof email !== 'string' ||
+      typeof username !== 'string' ||
       typeof password !== 'string' ||
       typeof dateOfBirth !== 'string' ||
       !email.trim() ||
+      !username.trim() ||
       !password ||
       !dateOfBirth.trim()
     ) {
       return res.status(400).json({
-        message: 'Email, password and date of birth are required.',
+        message: 'Email, username, password and date of birth are required.',
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedUsername = username.trim();
+
+    if (normalizedUsername.length < 3 || normalizedUsername.length > 30) {
+      return res.status(400).json({
+        message: 'Username must be between 3 and 30 characters.',
       });
     }
 
@@ -35,15 +46,22 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-
     const existingUser = await User.findOne({
-      email: normalizedEmail,
+      $or: [
+        { email: normalizedEmail },
+        { username: normalizedUsername },
+      ],
     });
 
     if (existingUser) {
+      if (existingUser.email === normalizedEmail) {
+        return res.status(409).json({
+          message: 'This email is already registered.',
+        });
+      }
+
       return res.status(409).json({
-        message: 'This email is already registered.',
+        message: 'This username is already taken.',
       });
     }
 
@@ -51,6 +69,7 @@ router.post('/register', async (req, res) => {
 
     const newUser = new User({
       email: normalizedEmail,
+      username: normalizedUsername,
       password: hashedPassword,
       dateOfBirth: parsedDateOfBirth,
     });
@@ -62,13 +81,19 @@ router.post('/register', async (req, res) => {
       user: {
         id: newUser._id,
         email: newUser.email,
+        username: newUser.username,
         dateOfBirth: newUser.dateOfBirth,
       },
     });
   } catch (error) {
     if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern || {})[0];
+
       return res.status(409).json({
-        message: 'This email is already registered.',
+        message:
+          duplicateField === 'username'
+            ? 'This username is already taken.'
+            : 'This email is already registered.',
       });
     }
 
@@ -129,6 +154,7 @@ router.post('/login', async (req, res) => {
       user: {
         id: user._id,
         email: user.email,
+        username: user.username,
         dateOfBirth: user.dateOfBirth,
       },
     });
