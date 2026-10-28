@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { slugify } from "../utils/slug";
-import formStyles from "./formStyles";
 import PageLayout from "../components/PageLayout";
 import logo from "../assets/AFJ_circle_logo_1.png";
 
@@ -27,13 +26,8 @@ if (PAGE_JUMP <= PAGES_SHOWN) {
   );
 }
 
-// Width of each movie picture in pixels (the height follows the picture's own proportions)
-const MOVIE_IMAGE_WIDTH = 240;
-
-// The search bar and Search button share this height
-const CONTROL_HEIGHT = 44;
-
 // The movie's picture comes from its poster_url field
+// (the picture's width is --poster-width in App.css)
 const getImageUrl = (movie) => movie.poster_url || "";
 
 // Page numbers to show: a few pages before and after the current one
@@ -45,192 +39,8 @@ const getPageItems = (current, total) => {
   return pages;
 };
 
-const styles = {
-  // Logo on the left; title + search bar centered in the space that remains
-  topRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 24,
-  },
-  // 3x the previous size (about 280px), shrinking a bit on small screens
-  logoBox: {
-    position: "relative",
-    width: "clamp(120px, 25vw, 280px)",
-    aspectRatio: "1 / 1",
-    flexShrink: 0,
-  },
-  logo: {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    objectFit: "contain",
-  },
-  topContent: {
-    flex: 1,
-    minWidth: 0,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  title: {
-    ...formStyles.title,
-    textAlign: "center",
-  },
-  searchForm: {
-    display: "flex",
-    gap: 8,
-    width: "100%",
-    maxWidth: 600,
-  },
-  searchInput: {
-    ...formStyles.input,
-    flex: 1,
-    minWidth: 0,
-    height: CONTROL_HEIGHT,
-  },
-  searchButton: {
-    ...formStyles.button,
-    height: CONTROL_HEIGHT,
-    padding: "0 20px",
-    flexShrink: 0,
-  },
-  // Centered under the search bar; the dropdown is only as wide as its longest genre
-  genreRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    marginTop: 12,
-  },
-  genreLabel: {
-    color: "#8ab4f8",
-    fontSize: 13,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: 2,
-    paddingBottom: 2,
-    borderBottom: "2px solid #8ab4f8",
-  },
-  genreSelect: {
-    ...formStyles.input,
-    width: "auto",
-    height: 40,
-    padding: "0 12px",
-    colorScheme: "dark",
-    cursor: "pointer",
-  },
-  sectionTitle: {
-    margin: "32px 0 0",
-    fontSize: 48,
-    fontWeight: 700,
-    textAlign: "left",
-    overflowWrap: "anywhere",
-  },
-  // Movie cards in fixed-width columns: every row starts at the same left edge,
-  // while the whole block stays centered so left and right space match
-  movieGrid: {
-    display: "grid",
-    gridTemplateColumns: `repeat(auto-fill, ${MOVIE_IMAGE_WIDTH}px)`,
-    justifyContent: "center",
-    alignItems: "start",
-    gap: 24,
-    listStyle: "none",
-    margin: "16px 0 0",
-    padding: 0,
-  },
-  movieCard: {
-    width: MOVIE_IMAGE_WIDTH,
-    textAlign: "center",
-  },
-  // Link wrapping the picture: shows the "click" hand cursor
-  movieImageLink: {
-    display: "block",
-    width: MOVIE_IMAGE_WIDTH,
-    cursor: "pointer",
-  },
-  // Fixed width, height adjusts automatically to keep the picture's proportions
-  movieImage: {
-    display: "block",
-    width: MOVIE_IMAGE_WIDTH,
-    height: "auto",
-    borderRadius: 8,
-    background: "#242424",
-  },
-  moviePlaceholder: {
-    width: MOVIE_IMAGE_WIDTH,
-    aspectRatio: "2 / 3",
-    borderRadius: 8,
-    background: "#242424",
-    color: "#9a9a9a",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 14,
-  },
-  movieName: {
-    margin: "8px 0 0",
-    fontSize: 16,
-    fontWeight: 700,
-    overflowWrap: "anywhere",
-  },
-  message: { margin: "16px 0 0", color: "#9a9a9a" },
-  errorMessage: { margin: "16px 0 0", color: "#ff8a80" },
-  // Page buttons below the results
-  pager: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 8,
-    margin: "32px 0 0",
-  },
-  // The border is written as separate properties (not the "border" shorthand), and the
-  // font weight is always set, so switching between normal and active never leaves
-  // a stale border color or bold text behind on a button that was active before
-  pageButton: {
-    background: "#242424",
-    color: "#e8e8e8",
-    borderWidth: 1,
-    borderStyle: "solid",
-    borderColor: "#4a4a4a",
-    borderRadius: 6,
-    padding: "6px 12px",
-    fontSize: 14,
-    fontWeight: 400,
-    cursor: "pointer",
-  },
-  pageButtonActive: {
-    background: "#8ab4f8",
-    color: "#1b1b1b",
-    borderColor: "#8ab4f8",
-    fontWeight: 600,
-  },
-  // First / Previous / Next / Last: filled blue, like the Search and Sign up buttons
-  pageNavButton: {
-    ...formStyles.button,
-    border: "1px solid #8ab4f8",
-    padding: "6px 14px",
-  },
-  pageButtonDisabled: { opacity: 0.4, cursor: "default" },
-  // "..." between the jump page and the shown pages, marking skipped pages
-  ellipsis: { color: "#9a9a9a", padding: "0 4px" },
-  // "Go to page" box next to the Last button
-  pageJumpForm: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    margin: 0,
-  },
-  pageInput: {
-    ...formStyles.input,
-    width: 72,
-    height: 32,
-    padding: "0 8px",
-    fontSize: 14,
-    textAlign: "center",
-  },
-};
+// Blue First / Previous / Next / Last buttons of the page bar
+const NAV_BUTTON_CLASS = "btn border border-brand py-1.5";
 
 export default function HomePage() {
   const [query, setQuery] = useState("");
@@ -330,48 +140,39 @@ export default function HomePage() {
   };
 
   return (
-    <PageLayout>
-      {/* Movie titles are underlined only while hovered */}
-      <style>{`
-        .movie-title-link {
-          color: inherit;
-          text-decoration: none;
-          cursor: pointer;
-        }
-        .movie-title-link:hover {
-          text-decoration: underline;
-        }
-      `}</style>
-
-      <div style={styles.topRow}>
-        <div style={styles.logoBox}>
-          <img src={logo} alt="AFJ logo" style={styles.logo} />
+    <PageLayout page="home">
+      {/* Logo on the left; title + search bar centered in the space that remains */}
+      <div className="flex items-center gap-6">
+        <div className="relative aspect-square w-[clamp(120px,25vw,280px)] shrink-0">
+          <img src={logo} alt="AFJ logo" className="absolute inset-0 size-full object-contain" />
         </div>
 
-        <div style={styles.topContent}>
-          <h1 style={styles.title}>Welcome to Appraisal Film Journal!</h1>
+        <div className="flex min-w-0 flex-1 flex-col items-center">
+          <h1 className="mb-5 text-center text-2xl font-semibold">
+            Welcome to Appraisal Film Journal!
+          </h1>
 
-          <form style={styles.searchForm} onSubmit={handleSubmit}>
+          <form className="flex w-full max-w-[600px] gap-2" onSubmit={handleSubmit}>
             <input
-              style={styles.searchInput}
+              className="input h-11 min-w-0 flex-1"
               type="search"
               placeholder="Search movies..."
               aria-label="Search movies"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <button style={styles.searchButton} type="submit">
+            <button className="btn h-11 shrink-0 px-5 py-0" type="submit">
               Search
             </button>
           </form>
 
-          <div style={styles.genreRow}>
-            <label htmlFor="genre-select" style={styles.genreLabel}>
+          <div className="mt-3 flex items-center justify-center gap-3">
+            <label htmlFor="genre-select" className="label-brand border-b-2 border-brand pb-0.5">
               Genre
             </label>
             <select
               id="genre-select"
-              style={styles.genreSelect}
+              className="select"
               value={genre}
               onChange={(e) => {
                 setGenre(e.target.value);
@@ -390,16 +191,20 @@ export default function HomePage() {
         </div>
       </div>
 
-      <h2 style={styles.sectionTitle}>{heading}</h2>
+      <h2 className="mt-8 text-left text-5xl leading-tight font-bold [overflow-wrap:anywhere]">
+        {heading}
+      </h2>
 
-      {loading && <p style={styles.message}>Loading movies...</p>}
-      {error && <p style={styles.errorMessage}>{error}</p>}
+      {loading && <p className="mt-4 text-muted">Loading movies...</p>}
+      {error && <p className="mt-4 text-danger-text">{error}</p>}
       {!loading && !error && sortedMovies.length === 0 && (
-        <p style={styles.message}>No movies found.</p>
+        <p className="mt-4 text-muted">No movies found.</p>
       )}
 
+      {/* Movie cards in fixed-width columns: every row starts at the same left edge,
+          while the whole block stays centered so left and right space match */}
       {!loading && visibleMovies.length > 0 && (
-        <ul style={styles.movieGrid}>
+        <ul className="mt-4 grid grid-cols-[repeat(auto-fill,var(--poster-width))] items-start justify-center gap-6 p-0">
           {visibleMovies.map((movie) => {
             const imageUrl = getImageUrl(movie);
             // the address shows the movie's name, e.g. /movies/the-dark-knight
@@ -408,16 +213,28 @@ export default function HomePage() {
             // the id travels with the click (not in the address) so the movie loads directly
             const linkState = { movieId: movie._id };
             return (
-              <li key={movie._id} style={styles.movieCard}>
-                <Link to={moviePath} state={linkState} style={styles.movieImageLink} aria-label={movie.title}>
+              <li key={movie._id} className="w-(--poster-width) text-center">
+                <Link
+                  to={moviePath}
+                  state={linkState}
+                  className="block w-(--poster-width) cursor-pointer"
+                  aria-label={movie.title}
+                >
                   {imageUrl ? (
-                    <img src={imageUrl} alt="" style={styles.movieImage} />
+                    <img
+                      src={imageUrl}
+                      alt=""
+                      className="block h-auto w-(--poster-width) rounded-lg bg-surface"
+                    />
                   ) : (
-                    <div style={styles.moviePlaceholder}>No image</div>
+                    <div className="flex aspect-[2/3] w-(--poster-width) items-center justify-center rounded-lg bg-surface text-sm text-muted">
+                      No image
+                    </div>
                   )}
                 </Link>
-                <p style={styles.movieName}>
-                  <Link to={moviePath} state={linkState} className="movie-title-link">
+                <p className="mt-2 text-base font-bold [overflow-wrap:anywhere]">
+                  {/* the title is underlined only while hovered */}
+                  <Link to={moviePath} state={linkState} className="cursor-pointer hover:underline">
                     {movie.title}
                   </Link>
                 </p>
@@ -428,13 +245,10 @@ export default function HomePage() {
       )}
 
       {!loading && totalPages > 1 && (
-        <nav style={styles.pager} aria-label="Movie pages">
+        <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="Movie pages">
           <button
             type="button"
-            style={{
-              ...styles.pageNavButton,
-              ...(page === 1 ? styles.pageButtonDisabled : {}),
-            }}
+            className={NAV_BUTTON_CLASS}
             disabled={page === 1}
             onClick={() => setPage(1)}
           >
@@ -443,10 +257,7 @@ export default function HomePage() {
 
           <button
             type="button"
-            style={{
-              ...styles.pageNavButton,
-              ...(page === 1 ? styles.pageButtonDisabled : {}),
-            }}
+            className={NAV_BUTTON_CLASS}
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
           >
@@ -457,7 +268,7 @@ export default function HomePage() {
             <>
               <button
                 type="button"
-                style={styles.pageButton}
+                className="page-btn"
                 title={`Go to page ${jumpBackPage}`}
                 aria-label={`Go to page ${jumpBackPage}`}
                 onClick={() => setPage(jumpBackPage)}
@@ -466,7 +277,7 @@ export default function HomePage() {
               </button>
               {/* pages are skipped between the jump page and the shown pages */}
               {windowFirst - jumpBackPage > 1 && (
-                <span style={styles.ellipsis} aria-hidden="true">
+                <span className="px-1 text-muted" aria-hidden="true">
                   ...
                 </span>
               )}
@@ -477,10 +288,7 @@ export default function HomePage() {
             <button
               key={item}
               type="button"
-              style={{
-                ...styles.pageButton,
-                ...(item === page ? styles.pageButtonActive : {}),
-              }}
+              className={`page-btn ${item === page ? "page-btn-active" : ""}`}
               aria-current={item === page ? "page" : undefined}
               onClick={() => setPage(item)}
             >
@@ -492,13 +300,13 @@ export default function HomePage() {
             <>
               {/* pages are skipped between the shown pages and the jump page */}
               {jumpForwardPage - windowLast > 1 && (
-                <span style={styles.ellipsis} aria-hidden="true">
+                <span className="px-1 text-muted" aria-hidden="true">
                   ...
                 </span>
               )}
               <button
                 type="button"
-                style={styles.pageButton}
+                className="page-btn"
                 title={`Go to page ${jumpForwardPage}`}
                 aria-label={`Go to page ${jumpForwardPage}`}
                 onClick={() => setPage(jumpForwardPage)}
@@ -510,10 +318,7 @@ export default function HomePage() {
 
           <button
             type="button"
-            style={{
-              ...styles.pageNavButton,
-              ...(page === totalPages ? styles.pageButtonDisabled : {}),
-            }}
+            className={NAV_BUTTON_CLASS}
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
           >
@@ -522,19 +327,16 @@ export default function HomePage() {
 
           <button
             type="button"
-            style={{
-              ...styles.pageNavButton,
-              ...(page === totalPages ? styles.pageButtonDisabled : {}),
-            }}
+            className={NAV_BUTTON_CLASS}
             disabled={page === totalPages}
             onClick={() => setPage(totalPages)}
           >
             Last
           </button>
 
-          <form style={styles.pageJumpForm} onSubmit={handlePageJump}>
+          <form className="m-0 flex items-center gap-2" onSubmit={handlePageJump}>
             <input
-              style={styles.pageInput}
+              className="input h-8 w-[72px] px-2 py-0 text-center"
               type="text"
               inputMode="numeric"
               placeholder="Page"
@@ -543,14 +345,7 @@ export default function HomePage() {
               value={pageInput}
               onChange={handlePageInputChange}
             />
-            <button
-              type="submit"
-              style={{
-                ...styles.pageNavButton,
-                ...(pageInput === "" ? styles.pageButtonDisabled : {}),
-              }}
-              disabled={pageInput === ""}
-            >
+            <button type="submit" className={NAV_BUTTON_CLASS} disabled={pageInput === ""}>
               Go
             </button>
           </form>

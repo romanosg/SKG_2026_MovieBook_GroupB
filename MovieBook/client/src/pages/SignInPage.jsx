@@ -1,33 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import formStyles from "./formStyles";
 import PageLayout from "../components/PageLayout";
 import { isValidEmail, isValidPassword } from "../utils/validation";
-
-const styles = {
-  inputWrap: { position: "relative" },
-  toggle: {
-    position: "absolute",
-    right: 10,
-    top: "50%",
-    transform: "translateY(-50%)",
-    background: "none",
-    border: "none",
-    padding: 0,
-    color: "var(--page-accent)",
-    fontSize: 12,
-    cursor: "pointer",
-  },
-  forgotRow: { display: "flex", justifyContent: "flex-end" },
-  forgotButton: {
-    background: "none",
-    border: "none",
-    padding: 0,
-    color: "var(--page-accent)",
-    fontSize: 14,
-    cursor: "pointer",
-  },
-};
 
 export default function SignInPage() {
   const navigate = useNavigate();
@@ -81,19 +55,16 @@ export default function SignInPage() {
 
   return (
     <PageLayout page="signIn">
-      {/* Hides the browser's built-in "reveal password" icon (Edge) */}
-      <style>{`
-        .pw-input::-ms-reveal,
-        .pw-input::-ms-clear {
-          display: none;
-        }
-      `}</style>
-      <h1 style={formStyles.authTitle}>Sign in</h1>
-      <form style={formStyles.authForm} onSubmit={handleSubmit} noValidate>
-        <label style={formStyles.label}>
+      <h1 className="mb-5 text-center text-2xl font-semibold">Sign in</h1>
+      <form
+        className="mx-auto flex w-[360px] max-w-full flex-col gap-3.5"
+        onSubmit={handleSubmit}
+        noValidate
+      >
+        <label className="field">
           Email
           <input
-            style={formStyles.input}
+            className="input"
             type="email"
             value={email}
             onChange={(e) => {
@@ -102,13 +73,13 @@ export default function SignInPage() {
             }}
           />
         </label>
-        <div style={formStyles.label}>
+
+        <div className="field">
           <label htmlFor="signin-password">Password</label>
-          <div style={styles.inputWrap}>
+          <div className="relative">
             <input
               id="signin-password"
-              className="pw-input"
-              style={{ ...formStyles.input, width: "100%", paddingRight: 56 }}
+              className="input pw-input w-full pr-14"
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => {
@@ -118,7 +89,7 @@ export default function SignInPage() {
             />
             <button
               type="button"
-              style={styles.toggle}
+              className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer text-xs text-brand"
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
@@ -127,16 +98,16 @@ export default function SignInPage() {
           </div>
         </div>
 
-        {error && <span style={formStyles.error}>{error}</span>}
+        {error && <span className="error">{error}</span>}
 
-        <button style={formStyles.button} type="submit" disabled={loading}>
+        <button className="btn" type="submit" disabled={loading}>
           {loading ? "Signing in..." : "Sign in"}
         </button>
 
-        <div style={styles.forgotRow}>
+        <div className="flex justify-end">
           <button
             type="button"
-            style={styles.forgotButton}
+            className="cursor-pointer text-sm text-brand"
             onClick={() => {
               // TODO: go to your "forgot password" page
               console.log("Forgot password clicked");

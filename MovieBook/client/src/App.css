@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* =============================================================================
+   COLORS
+   Change a color here and it changes everywhere. In the code they are used as
+   class names:  bg-surface  text-brand  border-line  fill-star  accent-brand ...
+   ============================================================================= */
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Fills */
+  --color-page: #121212; /*      page background (the center) */
+  --color-navbar: #1b1b1b; /*    header bar */
+  --color-surface: #242424; /*   cards, input boxes, popups, page buttons */
+  --color-field: #1b1b1b; /*     text areas inside cards (About me) */
+
+  /* Brand (the blue) */
+  --color-brand: #8ab4f8; /*     blue buttons, links, small labels, checkboxes */
+  --color-on-brand: #1b1b1b; /*  text written on blue buttons */
+
+  /* Borders (lines that separate elements) */
+  --color-line: #4a4a4a; /*      outlines of input boxes, cards and buttons */
+  --color-line-soft: #3a3a3a; /* subtle lines: under the header bar */
+
+  /* Text */
+  --color-main: #e8e8e8; /*      main text */
+  --color-strong: #ffffff; /*    highlighted text */
+  --color-heading: #f3f4f6; /*   titles (h1 and h2) */
+  --color-soft: #bdbdbd; /*      header links that aren't selected, small labels */
+  --color-muted: #9a9a9a; /*     hints, placeholders, secondary text */
+  --color-faint: #5a5a5a; /*     "nothing written yet" messages */
+
+  /* Status and other */
+  --color-danger: #e5534b; /*      Delete / Log out buttons, invalid password */
+  --color-danger-text: #ff8a80; /* error messages */
+  --color-success: #3fb950; /*     valid password */
+  --color-star: #f5b301; /*        filled review stars */
+  --color-avatar: #8b95a7; /*      the circle behind a profile letter */
+  --color-overlay: rgb(0 0 0 / 0.6); /* dimmed background behind popups */
+}
+
+/* =============================================================================
+   PAGE SIDES AND SIZES
+   ============================================================================= */
+:root {
+  --sides: #16171d; /*      the empty areas left and right of the page column */
+  --sides-line: #2e303a; /* the thin lines along the edges of the page column */
+  --poster-width: 240px; /* width of a movie picture on the homepage */
+}
+
+/* =============================================================================
+   COLORS THAT DIFFER ON A SPECIFIC PAGE
+   Pages: home, movie, profile, reviews, signIn, signUp. Only write what changes.
+   The header bar and the page sides follow the page that is open.
+   Example (remove the comment marks to try it):
+   ============================================================================= */
+/*
+html[data-page="profile"] {
+  --color-surface: #2a2233;
+  --color-brand: #f5b301;
+  --sides: #0b0b0b;
+}
+*/
+
+/* =============================================================================
+   BASE
+   ============================================================================= */
+@layer base {
+  html {
+    background-color: var(--sides);
+  }
+
+  body {
+    @apply m-0 bg-transparent font-sans text-main antialiased;
+  }
+
+  h1,
+  h2 {
+    @apply text-heading;
+  }
+
+  /* The page column: centered, with the sides on both of its sides */
+  #root {
+    @apply mx-auto flex min-h-svh w-[1126px] max-w-full flex-col;
+    border-inline: 1px solid var(--sides-line);
+  }
+}
+
+/* =============================================================================
+   REUSABLE PIECES  (used as className="btn", className="input", ...)
+   ============================================================================= */
+@layer components {
+  /* Blue filled button: Search, Create account, ... */
+  .btn {
+    @apply cursor-pointer rounded-md bg-brand px-3.5 py-2.5 text-sm font-semibold text-on-brand disabled:cursor-default disabled:opacity-40;
+  }
+  /* Red version of a button: Delete account, Yes */
+  .btn-danger {
+    @apply bg-danger text-strong;
+  }
+
+  /* Text box */
+  .input {
+    @apply rounded-md border border-line bg-surface px-3 py-2.5 text-sm text-main placeholder:text-muted;
+  }
+
+  /* Dropdown */
+  .select {
+    @apply h-10 cursor-pointer rounded-md border border-line bg-surface px-3 text-sm text-main;
+    color-scheme: dark;
+  }
+
+  /* A label above its box */
+  .field {
+    @apply flex flex-col gap-1.5 text-sm;
+  }
+
+  /* Small blue uppercase lettering: GENRE, DIRECTOR, ... */
+  .label-brand {
+    @apply text-[13px] font-bold tracking-[2px] text-brand uppercase;
+  }
+
+  /* Small gray hint and small red error under a box */
+  .hint {
+    @apply text-xs text-muted;
+  }
+  .error {
+    @apply text-xs text-danger-text;
+  }
+
+  /* Page number buttons (homepage) */
+  .page-btn {
+    @apply cursor-pointer rounded-md border border-line bg-surface px-3 py-1.5 text-sm font-normal text-main;
+  }
+  .page-btn-active {
+    @apply border-brand bg-brand font-semibold text-on-brand;
+  }
+
+  /* Hides the browser's own "reveal password" icon (Edge) on password boxes */
+  .pw-input::-ms-reveal,
+  .pw-input::-ms-clear {
+    display: none;
+  }
+}

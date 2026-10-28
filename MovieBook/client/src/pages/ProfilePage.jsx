@@ -106,7 +106,7 @@ export default function ProfilePage() {
   if (!profileEmail) {
     return (
       <PageLayout page="profile">
-        <p style={{ color: "var(--page-text-muted)" }}>No profile selected.</p>
+        <p className="text-muted">No profile selected.</p>
       </PageLayout>
     );
   }
@@ -130,7 +130,7 @@ export default function ProfilePage() {
   const name = location.state?.name || profileEmail.split("@")[0];
 
   return (
-    <PageLayout page="profile" style={{ display: "flex" }}>
+    <PageLayout page="profile" className="flex">
       {/* key: switching between profiles starts the card fresh */}
       <Profile
         key={profileEmail}

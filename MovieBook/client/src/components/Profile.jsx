@@ -1,205 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 
-const styles = {
-  card: {
-    background: "var(--page-surface)",
-    color: "var(--page-text)",
-    borderLeft: "3px solid var(--page-border)",
-    padding: "20px 24px",
-    flex: 1,
-    width: "100%",
-    boxSizing: "border-box",
-    textAlign: "left",
-    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-    fontSize: 14,
-    lineHeight: 1.5,
-  },
-  photoRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: "50%",
-    background: "var(--page-avatar)",
-    color: "var(--page-text-strong)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 28,
-    padding: 0,
-    border: "none",
-    cursor: "pointer",
-    overflow: "hidden",
-    flexShrink: 0,
-  },
-  avatarStatic: {
-    width: 72,
-    height: 72,
-    borderRadius: "50%",
-    background: "var(--page-avatar)",
-    color: "var(--page-text-strong)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 28,
-    overflow: "hidden",
-    flexShrink: 0,
-  },
-  linkButton: {
-    background: "none",
-    border: "none",
-    padding: 0,
-    color: "var(--page-accent)",
-    cursor: "pointer",
-    font: "inherit",
-    textDecoration: "underline",
-  },
-  hint: { fontSize: 12, color: "var(--page-text-muted)", marginTop: 2 },
-  row: { margin: "0 0 12px" },
-  aboutHeading: { margin: "24px 0 8px", fontSize: 16, fontWeight: 700 },
-  aboutInput: {
-    display: "block",
-    width: "100%",
-    minHeight: 280,
-    boxSizing: "border-box",
-    background: "var(--page-surface-dark)",
-    color: "var(--page-text)",
-    border: "1px solid var(--page-border)",
-    borderRadius: 6,
-    padding: "10px 12px",
-    font: "inherit",
-    lineHeight: 1.5,
-    resize: "none",
-    overflow: "hidden",
-    tabSize: 4,
-  },
-  aboutReadOnly: {
-    display: "block",
-    width: "100%",
-    minHeight: 100,
-    boxSizing: "border-box",
-    background: "var(--page-surface-dark)",
-    color: "var(--page-text-muted)",
-    border: "1px solid var(--page-border-soft)",
-    borderRadius: 6,
-    padding: "10px 12px",
-    font: "inherit",
-    lineHeight: 1.5,
-  },
-  // Filled blue, like the Search and Sign up buttons
-  saveButton: {
-    background: "var(--page-accent)",
-    color: "var(--page-text-on-accent)",
-    border: "none",
-    borderRadius: 6,
-    padding: "6px 14px",
-    fontFamily: "inherit",
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  label: { fontWeight: 700, marginRight: 4 },
-  heading: { margin: "0 0 20px", fontSize: 20, fontWeight: 600 },
-  // Email / Age on the left, its "hide" checkbox on the right
-  dataRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    margin: "0 0 12px",
-  },
-  rowText: { margin: 0 },
-  // "Save about me" on the left, "Hide about me" on the right
-  aboutActions: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    marginTop: 12,
-  },
-  checkLabel: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    color: "var(--page-text-soft)",
-    fontSize: 13,
-    cursor: "pointer",
-    flexShrink: 0,
-  },
-  checkbox: { accentColor: "var(--page-accent)", cursor: "pointer", margin: 0, width: 26, height: 26 },
-  // Header row: title on the left, Delete account on the right
-  headerRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-    gap: 12,
-    margin: "0 0 20px",
-  },
-  deleteButton: {
-    background: "var(--page-danger)",
-    color: "var(--page-text-strong)",
-    border: "none",
-    borderRadius: 6,
-    padding: "8px 16px",
-    fontFamily: "inherit",
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  // The confirmation popup, centered on the screen over a dimmed background
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "var(--page-overlay)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    zIndex: 1000,
-  },
-  dialog: {
-    background: "var(--page-surface)",
-    color: "var(--page-text)",
-    border: "1px solid var(--page-border)",
-    borderRadius: 10,
-    padding: 24,
-    width: "100%",
-    maxWidth: 380,
-    boxSizing: "border-box",
-    textAlign: "center",
-  },
-  dialogTitle: { margin: "0 0 8px", fontSize: 18, fontWeight: 700 },
-  dialogText: { margin: "0 0 20px" },
-  dialogButtons: { display: "flex", justifyContent: "center", gap: 12 },
-  yesButton: {
-    background: "var(--page-danger)",
-    color: "var(--page-text-strong)",
-    border: "none",
-    borderRadius: 6,
-    padding: "8px 24px",
-    fontFamily: "inherit",
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  // Filled blue, like the Search and Sign up buttons
-  noButton: {
-    background: "var(--page-accent)",
-    color: "var(--page-text-on-accent)",
-    border: "none",
-    borderRadius: 6,
-    padding: "8px 24px",
-    fontFamily: "inherit",
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-};
+// Shared look of the profile photo circle
+const AVATAR_CLASS =
+  "flex size-18 shrink-0 items-center justify-center overflow-hidden rounded-full bg-avatar p-0 text-[28px] text-strong";
+
+// "Hide email" / "Hide age" / "Hide about me": text first, then the checkbox
+const CHECK_LABEL_CLASS =
+  "inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-[13px] text-soft";
+const CHECKBOX_CLASS = "m-0 size-[26px] cursor-pointer accent-brand";
 
 const MAX_SIZE_MB = 5;
 
@@ -209,7 +17,7 @@ export default function Profile({
   age = null,
   avatarUrl = "",
   about: initialAbout = "",
-  canEdit = false,        // neo prop: an false, read-only mode
+  canEdit = false, // neo prop: an false, read-only mode
   onAboutChange, // optional: called with the new About me text
   onPhotoChange, // optional: called with the new photo as a data URL
   onDeleteAccount, // optional: called after the user confirms deleting their account
@@ -219,7 +27,7 @@ export default function Profile({
   const [about, setAbout] = useState(initialAbout);
   const aboutRef = useRef(null);
 
-  // Grow the About me box to fit its text (never smaller than minHeight)
+  // Grow the About me box to fit its text (never smaller than its minimum height)
   const fitAbout = () => {
     const el = aboutRef.current;
     if (!el) return;
@@ -311,15 +119,22 @@ export default function Profile({
     onSeeReviews?.(); // the page decides where this leads (see ProfilePage)
   };
 
+  // The photo, or the first letter of the name
+  const avatarContent = photo ? (
+    <img src={photo} alt={`${name}'s photo`} className="size-full object-cover" />
+  ) : (
+    initial
+  );
+
   return (
-    <section style={styles.card}>
-      <div style={styles.headerRow}>
-        <h2 style={{ ...styles.heading, margin: 0 }}>User's Profile</h2>
+    <section className="w-full flex-1 border-l-[3px] border-line bg-surface px-6 py-5 text-left text-sm leading-normal text-main">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="m-0 text-xl font-semibold">User's Profile</h2>
         {/* Only for the profile's owner */}
         {canEdit && (
           <button
             type="button"
-            style={styles.deleteButton}
+            className="btn btn-danger px-4 py-2"
             onClick={() => setConfirmOpen(true)}
           >
             Delete account
@@ -327,45 +142,35 @@ export default function Profile({
         )}
       </div>
 
-      <div style={styles.photoRow}>
+      <div className="mb-6 flex items-center gap-3.5">
         {/* canEdit=true: avatar einai koumpi, canEdit=false: aplo div */}
         {canEdit ? (
           <button
             type="button"
-            style={styles.avatar}
+            className={`${AVATAR_CLASS} cursor-pointer`}
             onClick={() => inputRef.current?.click()}
             aria-label="Change profile photo"
           >
-            {photo ? (
-              <img src={photo} alt={`${name}'s photo`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : (
-              initial
-            )}
+            {avatarContent}
           </button>
         ) : (
-          <div style={styles.avatarStatic}>
-            {photo ? (
-              <img src={photo} alt={`${name}'s photo`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : (
-              initial
-            )}
-          </div>
+          <div className={AVATAR_CLASS}>{avatarContent}</div>
         )}
 
         {/* 'Change photo' mono an canEdit=true */}
         {canEdit && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+          <div className="flex flex-col items-start gap-1.5">
             <button
               type="button"
-              style={styles.linkButton}
+              className="cursor-pointer text-brand underline"
               onClick={() => inputRef.current?.click()}
             >
               {photo ? "Change photo" : "Upload photo"}
             </button>
-            <div style={styles.hint}>
-              {error ? <span style={{ color: "var(--page-danger-text)" }}>{error}</span> : "JPG or PNG, up to 5 MB"}
+            <div className="hint">
+              {error ? <span className="text-danger-text">{error}</span> : "JPG or PNG, up to 5 MB"}
             </div>
-            <button type="button" style={styles.saveButton} onClick={handleSavePhoto}>
+            <button type="button" className="btn py-1.5" onClick={handleSavePhoto}>
               Save photo
             </button>
           </div>
@@ -376,102 +181,103 @@ export default function Profile({
           type="file"
           accept="image/*"
           onChange={handleFile}
-          style={{ display: "none" }}
+          className="hidden"
         />
       </div>
 
-      <div style={styles.dataRow}>
-        <p style={styles.rowText}>
-          <span style={styles.label}>Email:</span>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="m-0">
+          <span className="mr-1 font-bold">Email:</span>
           {email}
         </p>
         {/* Only for the profile's owner. Not functional yet: nothing is stored for it. */}
         {canEdit && (
-          <label style={styles.checkLabel}>
+          <label className={CHECK_LABEL_CLASS}>
             Hide email
-            <input type="checkbox" style={styles.checkbox} />
+            <input type="checkbox" className={CHECKBOX_CLASS} />
           </label>
         )}
       </div>
       {/* ilikia mono an exoume timi */}
       {age !== null && (
-        <div style={styles.dataRow}>
-          <p style={styles.rowText}>
-            <span style={styles.label}>Age:</span>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="m-0">
+            <span className="mr-1 font-bold">Age:</span>
             {age}
           </p>
           {canEdit && (
-            <label style={styles.checkLabel}>
+            <label className={CHECK_LABEL_CLASS}>
               Hide age
-              <input type="checkbox" style={styles.checkbox} />
+              <input type="checkbox" className={CHECKBOX_CLASS} />
             </label>
           )}
         </div>
       )}
 
-      <h3 style={styles.aboutHeading}>About me</h3>
+      <h3 className="mt-6 mb-2 text-base font-bold">About me</h3>
 
-      {/* canEdit=true: textarea, canEdit=false: read-only div */}
+      {/* canEdit=true: textarea, canEdit=false: read-only box */}
       {canEdit ? (
         <>
           <textarea
             ref={aboutRef}
-            style={styles.aboutInput}
+            className="block min-h-[280px] w-full resize-none overflow-hidden rounded-md border border-line bg-field px-3 py-2.5 leading-normal text-main [tab-size:4] placeholder:text-muted"
             aria-label="About me"
             placeholder="Write something about yourself..."
             value={about}
             onChange={(e) => updateAbout(e.target.value)}
             onKeyDown={handleAboutKeyDown}
           />
-          <div style={styles.aboutActions}>
-            <button type="button" style={styles.saveButton} onClick={handleSaveAbout}>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <button type="button" className="btn py-1.5" onClick={handleSaveAbout}>
               Save about me
             </button>
             {/* Not functional yet: nothing is stored for it */}
-            <label style={styles.checkLabel}>
+            <label className={CHECK_LABEL_CLASS}>
               Hide about me
-              <input type="checkbox" style={styles.checkbox} />
+              <input type="checkbox" className={CHECKBOX_CLASS} />
             </label>
           </div>
         </>
       ) : (
-        <div style={styles.aboutReadOnly}>
-          {about || <span style={{ color: "var(--page-text-faint)" }}>Nothing written yet.</span>}
+        <div className="block min-h-[100px] w-full rounded-md border border-line-soft bg-field px-3 py-2.5 leading-normal whitespace-pre-wrap text-muted [tab-size:4]">
+          {about || <span className="text-faint">Nothing written yet.</span>}
         </div>
       )}
 
       {/* Only for the profile's owner */}
       {canEdit && (
-        <div style={{ marginTop: 24 }}>
-          <button type="button" style={styles.saveButton} onClick={handleSeeReviews}>
+        <div className="mt-6">
+          <button type="button" className="btn py-1.5" onClick={handleSeeReviews}>
             Go See My Reviews
           </button>
         </div>
       )}
 
       {confirmOpen && (
-        <div style={styles.overlay} onClick={() => setConfirmOpen(false)}>
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-overlay p-4"
+          onClick={() => setConfirmOpen(false)}
+        >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-account-title"
-            style={styles.dialog}
+            className="box-border w-full max-w-[380px] rounded-[10px] border border-line bg-surface p-6 text-center text-main"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 id="delete-account-title" style={styles.dialogTitle}>
+            <h3 id="delete-account-title" className="mb-2 text-lg font-bold">
               Delete account
             </h3>
-            <p style={styles.dialogText}>
-              Are you sure you want to delete your account?
-            </p>
-            <div style={styles.dialogButtons}>
-              <button type="button" style={styles.yesButton} onClick={handleConfirmDelete}>
+            <p className="mb-5">Are you sure you want to delete your account?</p>
+            <div className="flex justify-center gap-3">
+              <button type="button" className="btn btn-danger px-6 py-2" onClick={handleConfirmDelete}>
                 Yes
               </button>
               <button
                 type="button"
                 ref={noButtonRef}
-                style={styles.noButton}
+                className="btn px-6 py-2"
                 onClick={() => setConfirmOpen(false)}
               >
                 No

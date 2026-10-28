@@ -1,35 +1,7 @@
 import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import formStyles from "./formStyles";
 import PageLayout from "../components/PageLayout";
 import { isValidEmail, getPasswordRules, isValidPassword } from "../utils/validation";
-
-const COLORS = { neutral: "var(--page-border)", red: "var(--page-danger)", green: "var(--page-success)", gray: "var(--page-text-muted)" };
-
-const styles = {
-  dateRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  dateInput: { ...formStyles.input, textAlign: "center", padding: "10px 4px" },
-  slash: { fontSize: 18, color: COLORS.gray },
-  inputWrap: { position: "relative" },
-  toggle: {
-    position: "absolute",
-    right: 10,
-    top: "50%",
-    transform: "translateY(-50%)",
-    background: "none",
-    border: "none",
-    padding: 0,
-    color: "var(--page-accent)",
-    fontSize: 12,
-    cursor: "pointer",
-  },
-  rules: { listStyle: "none", margin: 0, padding: 0, fontSize: 12 },
-};
 
 // Checks day/month/year form a real date that isn't in the future
 const isValidBirthdate = (day, month, year) => {
@@ -74,22 +46,15 @@ export default function SignUpPage() {
     if (e.key === "Backspace" && value === "") prevRef?.current?.focus();
   };
 
-  // Password field colours
+  // Password field: neutral border when empty, green when valid, red when not
   const rules = getPasswordRules(password);
   const passwordIsValid = rules.every((r) => r.met);
-  const passwordBorder =
+  const passwordBorderClass =
     password === ""
-      ? COLORS.neutral
+      ? "border-line"
       : passwordIsValid
-      ? COLORS.green
-      : COLORS.red;
-  const passwordStyle = {
-    ...formStyles.input,
-    width: "100%",
-    paddingRight: 56,
-    borderColor: passwordBorder,
-  };
-  const confirmStyle = { ...formStyles.input, width: "100%", paddingRight: 56 };
+      ? "border-success"
+      : "border-danger";
 
   // Unmet rules are gray on an untouched form, red once there is a problem
   const showUnmetInRed = password !== "" || Boolean(errors.password);
@@ -129,12 +94,8 @@ export default function SignUpPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        // p.x. email idi yparxei
-        if (response.status === 409) {
-          setErrors({ email: data.message });
-        } else {
-          setErrors({ email: data.message });
-        }
+        // p.x. email idi yparxei (409): the server's message is shown under the email box
+        setErrors({ email: data.message });
         return;
       }
 
@@ -149,22 +110,16 @@ export default function SignUpPage() {
 
   return (
     <PageLayout page="signUp">
-      {/* Hides the browser's built-in "reveal password" icon (Edge) */}
-      <style>{`
-        .pw-input::-ms-reveal,
-        .pw-input::-ms-clear {
-          display: none;
-        }
-      `}</style>
-      <h1 style={formStyles.authTitle}>Sign up</h1>
-      <form style={formStyles.authForm} onSubmit={handleSubmit} noValidate>
-        <label style={formStyles.label}>
+      <h1 className="mb-5 text-center text-2xl font-semibold">Sign up</h1>
+      <form
+        className="mx-auto flex w-[360px] max-w-full flex-col gap-3.5"
+        onSubmit={handleSubmit}
+        noValidate
+      >
+        <label className="field">
           Email
           <input
-            style={{
-              ...formStyles.input,
-              borderColor: errors.email ? COLORS.red : COLORS.neutral,
-            }}
+            className={`input ${errors.email ? "border-danger" : ""}`}
             type="email"
             value={email}
             onChange={(e) => {
@@ -182,15 +137,15 @@ export default function SignUpPage() {
             }}
             required
           />
-          {errors.email && <span style={formStyles.error}>{errors.email}</span>}
+          {errors.email && <span className="error">{errors.email}</span>}
         </label>
 
-        <div style={formStyles.label} role="group" aria-labelledby="dob-label">
+        <div className="field" role="group" aria-labelledby="dob-label">
           <span id="dob-label">Date of birth</span>
-          <div style={styles.dateRow}>
+          <div className="flex items-center justify-center gap-2">
             <input
               ref={dayRef}
-              style={{ ...styles.dateInput, width: 56 }}
+              className="input w-14 px-1 text-center"
               type="text"
               inputMode="numeric"
               placeholder="DD"
@@ -198,10 +153,10 @@ export default function SignUpPage() {
               value={day}
               onChange={handleDatePart(setDay, 2, monthRef)}
             />
-            <span style={styles.slash}>/</span>
+            <span className="text-lg text-muted">/</span>
             <input
               ref={monthRef}
-              style={{ ...styles.dateInput, width: 56 }}
+              className="input w-14 px-1 text-center"
               type="text"
               inputMode="numeric"
               placeholder="MM"
@@ -210,10 +165,10 @@ export default function SignUpPage() {
               onChange={handleDatePart(setMonth, 2, yearRef)}
               onKeyDown={handleBackspace(month, dayRef)}
             />
-            <span style={styles.slash}>/</span>
+            <span className="text-lg text-muted">/</span>
             <input
               ref={yearRef}
-              style={{ ...styles.dateInput, width: 80 }}
+              className="input w-20 px-1 text-center"
               type="text"
               inputMode="numeric"
               placeholder="YYYY"
@@ -223,18 +178,15 @@ export default function SignUpPage() {
               onKeyDown={handleBackspace(year, monthRef)}
             />
           </div>
-          {errors.birthdate && (
-            <span style={formStyles.error}>{errors.birthdate}</span>
-          )}
+          {errors.birthdate && <span className="error">{errors.birthdate}</span>}
         </div>
 
-        <div style={formStyles.label}>
+        <div className="field">
           <label htmlFor="signup-password">Password</label>
-          <div style={styles.inputWrap}>
+          <div className="relative">
             <input
               id="signup-password"
-              className="pw-input"
-              style={passwordStyle}
+              className={`input pw-input w-full pr-14 ${passwordBorderClass}`}
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -242,24 +194,20 @@ export default function SignUpPage() {
             />
             <button
               type="button"
-              style={styles.toggle}
+              className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer text-xs text-brand"
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? "Hide" : "Show"}
             </button>
           </div>
-          <ul style={styles.rules}>
+          <ul className="text-xs">
             {rules.map((rule) => (
               <li
                 key={rule.label}
-                style={{
-                  color: rule.met
-                    ? COLORS.green
-                    : showUnmetInRed
-                    ? COLORS.red
-                    : COLORS.gray,
-                }}
+                className={
+                  rule.met ? "text-success" : showUnmetInRed ? "text-danger" : "text-muted"
+                }
               >
                 {rule.met ? "✓" : "•"} {rule.label}
               </li>
@@ -267,13 +215,12 @@ export default function SignUpPage() {
           </ul>
         </div>
 
-        <div style={formStyles.label}>
+        <div className="field">
           <label htmlFor="signup-confirm">Confirm password</label>
-          <div style={styles.inputWrap}>
+          <div className="relative">
             <input
               id="signup-confirm"
-              className="pw-input"
-              style={confirmStyle}
+              className="input pw-input w-full pr-14"
               type={showConfirm ? "text" : "password"}
               value={confirmPassword}
               onChange={(e) => {
@@ -284,19 +231,17 @@ export default function SignUpPage() {
             />
             <button
               type="button"
-              style={styles.toggle}
+              className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer text-xs text-brand"
               onClick={() => setShowConfirm((v) => !v)}
               aria-label={showConfirm ? "Hide password" : "Show password"}
             >
               {showConfirm ? "Hide" : "Show"}
             </button>
           </div>
-          {errors.confirmPassword && (
-            <span style={formStyles.error}>{errors.confirmPassword}</span>
-          )}
+          {errors.confirmPassword && <span className="error">{errors.confirmPassword}</span>}
         </div>
 
-        <button style={formStyles.button} type="submit" disabled={loading}>
+        <button className="btn" type="submit" disabled={loading}>
           {loading ? "Creating account..." : "Create account"}
         </button>
       </form>

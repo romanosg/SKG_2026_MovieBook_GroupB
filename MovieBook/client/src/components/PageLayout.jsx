@@ -1,63 +1,38 @@
-import React, { useLayoutEffect, useMemo } from "react";
-import {
-  DEFAULT_PALETTE,
-  DEFAULT_CORNER_WIDTH,
-  PaletteContext,
-  applyPalette,
-  getPagePalette,
-} from "../utils/theme";
+import React, { useLayoutEffect } from "react";
 
-const FONT = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
-
-// The base structure of a page: colors, font and the space around the content.
+// The base structure of a page: background, text color and the space around the content.
 //
 //   <PageLayout page="home">...</PageLayout>
 //
-// page:        which page this is. Its colors come from PAGE_PALETTES in utils/theme.js
-//              (home, movie, profile, reviews, signIn, signUp). Unknown = default colors.
-// palette:     optional extra colors for this one use, on top of the page's colors
-// cornerWidth: space between the page's edges and its content, in pixels:
-//              one number for every side, or { x, y } for left/right and top/bottom
-// style:       extra styles, e.g. style={{ display: "flex" }}
-//
-// While a page is open its colors are applied to the WHOLE document, so the header bar
-// and the page sides follow it too. Everything reads them with var(--page-...).
-export default function PageLayout({
-  page,
-  palette,
-  cornerWidth = DEFAULT_CORNER_WIDTH,
-  style,
-  children,
-}) {
-  const overridesKey = JSON.stringify(palette ?? {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const colors = useMemo(() => getPagePalette(page, palette), [page, overridesKey]);
-
-  // Before the page is drawn: apply its colors. When it closes: back to the defaults.
+// page:        which page this is (home, movie, profile, reviews, signIn, signUp).
+//              App.css can give each page its own colors:  html[data-page="profile"] { ... }
+// cornerWidth: optional. Space between the page's edges and its content, in pixels:
+//              one number for every side, or { x, y } for left/right and top/bottom.
+//              Without it the default is 24px.
+// className:   extra Tailwind classes for this page, e.g. className="flex"
+export default function PageLayout({ page, cornerWidth, className = "", children }) {
+  // While the page is open, the whole document knows which page it is
   useLayoutEffect(() => {
-    applyPalette(colors);
-    return () => applyPalette(DEFAULT_PALETTE);
-  }, [colors]);
+    if (!page) return;
+    document.documentElement.dataset.page = page;
+    return () => {
+      delete document.documentElement.dataset.page;
+    };
+  }, [page]);
 
-  const x = typeof cornerWidth === "number" ? cornerWidth : cornerWidth.x ?? DEFAULT_CORNER_WIDTH;
-  const y = typeof cornerWidth === "number" ? cornerWidth : cornerWidth.y ?? DEFAULT_CORNER_WIDTH;
+  let padding;
+  if (typeof cornerWidth === "number") {
+    padding = `${cornerWidth}px`;
+  } else if (cornerWidth) {
+    padding = `${cornerWidth.y ?? 24}px ${cornerWidth.x ?? 24}px`;
+  }
 
   return (
-    <PaletteContext.Provider value={colors}>
-      <main
-        style={{
-          flex: 1, // fills the space under the header bar
-          width: "100%",
-          boxSizing: "border-box",
-          background: "var(--page-background)",
-          color: "var(--page-text)",
-          padding: `${y}px ${x}px`,
-          fontFamily: FONT,
-          ...style,
-        }}
-      >
-        {children}
-      </main>
-    </PaletteContext.Provider>
+    <main
+      className={`box-border w-full flex-1 bg-page p-6 text-main ${className}`}
+      style={padding ? { padding } : undefined}
+    >
+      {children}
+    </main>
   );
 }

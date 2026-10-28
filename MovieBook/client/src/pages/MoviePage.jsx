@@ -4,80 +4,6 @@ import { slugify } from "../utils/slug";
 import PageLayout from "../components/PageLayout";
 import StarRating from "../components/StarRating";
 
-const ACCENT = "var(--page-accent)";
-
-const styles = {
-  wrapper: { maxWidth: 1000, margin: "0 auto" },
-  back: {
-    display: "inline-block",
-    marginBottom: 24,
-    color: ACCENT,
-    textDecoration: "none",
-    fontSize: 14,
-  },
-  layout: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 32,
-    alignItems: "flex-start",
-  },
-  poster: {
-    display: "block",
-    width: "min(100%, 320px)",
-    height: "auto",
-    borderRadius: 10,
-    background: "var(--page-surface)",
-  },
-  posterPlaceholder: {
-    width: "min(100%, 320px)",
-    aspectRatio: "2 / 3",
-    borderRadius: 10,
-    background: "var(--page-surface)",
-    color: "var(--page-text-muted)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  details: { flex: 1, minWidth: 260 },
-  title: { margin: 0, fontSize: 40, fontWeight: 700, lineHeight: 1.15 },
-  year: { margin: "6px 0 0", fontSize: 18, color: "var(--page-text-muted)" },
-  genres: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
-    margin: "20px 0 0",
-    padding: 0,
-    listStyle: "none",
-  },
-  genreChip: {
-    border: `1px solid ${ACCENT}`,
-    color: ACCENT,
-    borderRadius: 999,
-    padding: "4px 14px",
-    fontSize: 13,
-  },
-  sectionLabel: {
-    margin: "28px 0 6px",
-    color: ACCENT,
-    fontSize: 13,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: 2,
-  },
-  text: { margin: 0, fontSize: 16, lineHeight: 1.6, whiteSpace: "pre-wrap" },
-  reviewRow: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center", // centered, like the director
-    flexWrap: "wrap",
-    gap: 12,
-    margin: "28px 0 0",
-  },
-  reviewCount: { fontSize: 16 },
-  message: { color: "var(--page-text-muted)" },
-  errorMessage: { color: "var(--page-danger-text)" },
-};
-
 export default function MoviePage() {
   const { id } = useParams(); // the movie's name (or old id) from the address /movies/:id
   const location = useLocation();
@@ -142,44 +68,57 @@ export default function MoviePage() {
 
   return (
     <PageLayout page="movie">
-      <div style={styles.wrapper}>
-        <Link to="/" style={styles.back}>
+      <div className="mx-auto max-w-[1000px]">
+        <Link to="/" className="mb-6 inline-block text-sm text-brand">
           ← Back to movies
         </Link>
 
-        {loading && <p style={styles.message}>Loading movie...</p>}
-        {error && <p style={styles.errorMessage}>{error}</p>}
+        {loading && <p className="text-muted">Loading movie...</p>}
+        {error && <p className="text-danger-text">{error}</p>}
 
         {movie && (
-          <div style={styles.layout}>
+          <div className="flex flex-wrap items-start gap-8">
             {movie.poster_url ? (
-              <img src={movie.poster_url} alt={`${movie.title} poster`} style={styles.poster} />
+              <img
+                src={movie.poster_url}
+                alt={`${movie.title} poster`}
+                className="block h-auto w-[min(100%,320px)] rounded-[10px] bg-surface"
+              />
             ) : (
-              <div style={styles.posterPlaceholder}>No image</div>
+              <div className="flex aspect-[2/3] w-[min(100%,320px)] items-center justify-center rounded-[10px] bg-surface text-muted">
+                No image
+              </div>
             )}
 
-            <div style={styles.details}>
-              <h1 style={styles.title}>{movie.title}</h1>
-              <p style={styles.year}>{movie.year}</p>
+            <div className="min-w-[260px] flex-1">
+              <h1 className="m-0 text-[40px] leading-[1.15] font-bold">{movie.title}</h1>
+              <p className="mt-1.5 text-lg text-muted">{movie.year}</p>
 
               {movie.genre?.length > 0 && (
-                <ul style={styles.genres} aria-label="Genres">
+                <ul className="mt-5 flex flex-wrap gap-2 p-0" aria-label="Genres">
                   {movie.genre.map((g) => (
-                    <li key={g} style={styles.genreChip}>
+                    <li
+                      key={g}
+                      className="rounded-full border border-brand px-3.5 py-1 text-[13px] text-brand"
+                    >
                       {g}
                     </li>
                   ))}
                 </ul>
               )}
 
-              <h2 style={{ ...styles.sectionLabel, textAlign: "center" }}>Director</h2>
-              <p style={{ ...styles.text, textAlign: "center" }}>{movie.director}</p>
+              <h2 className="label-brand mt-7 mb-1.5 text-center">Director</h2>
+              <p className="m-0 text-center text-base leading-[1.6] whitespace-pre-wrap">
+                {movie.director}
+              </p>
 
-              <h2 style={{ ...styles.sectionLabel, textAlign: "left" }}>Description</h2>
-              <p style={{ ...styles.text, textAlign: "left" }}>{movie.description}</p>
+              <h2 className="label-brand mt-7 mb-1.5 text-left">Description</h2>
+              <p className="m-0 text-left text-base leading-[1.6] whitespace-pre-wrap">
+                {movie.description}
+              </p>
 
-              <div style={styles.reviewRow}>
-                <span style={styles.reviewCount}>
+              <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+                <span className="text-base">
                   {reviewCount} public {reviewCount === 1 ? "review" : "reviews"}
                 </span>
                 <StarRating rating={averageRating} size={66} />

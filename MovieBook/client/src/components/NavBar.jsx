@@ -4,63 +4,9 @@ import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 // Exhibition profile. Only this link knows about George: the profile page itself is generic.
 const GEORGE_EMAIL = "georgerom1999@gmail.com";
 
-const styles = {
-  bar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-    gap: 12,
-    background: "var(--page-navbar)",
-    borderBottom: "1px solid var(--page-border-soft)",
-    padding: "12px 24px",
-    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-    fontSize: 14,
-  },
-  group: {
-    display: "flex",
-    alignItems: "center",
-    gap: 20,
-    listStyle: "none",
-    margin: 0,
-    padding: 0,
-  },
-  signUp: {
-    color: "var(--page-text-on-accent)",
-    background: "var(--page-accent)",
-    padding: "6px 14px",
-    borderRadius: 6,
-    textDecoration: "none",
-    fontWeight: 600,
-  },
-  logOut: {
-    color: "var(--page-danger)",
-    background: "transparent",
-    border: "1px solid var(--page-danger)",
-    padding: "6px 14px",
-    borderRadius: 6,
-    fontWeight: 600,
-    cursor: "pointer",
-    fontSize: 14,
-    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-  },
-  emailDisplay: {
-    color: "var(--page-accent)",
-    fontSize: 13,
-    maxWidth: 200,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-};
-
-// NavLink tells us whether the link matches the current URL
-const linkStyle = ({ isActive }) => ({
-  color: isActive ? "var(--page-text-strong)" : "var(--page-text-soft)",
-  textDecoration: "none",
-  paddingBottom: 2,
-  borderBottom: isActive ? "2px solid var(--page-accent)" : "2px solid transparent",
-});
+// Header link: white with a blue underline when it matches the open page
+const linkClass = (isActive) =>
+  `border-b-2 pb-0.5 ${isActive ? "border-brand text-strong" : "border-transparent text-soft"}`;
 
 export default function NavBar() {
   const navigate = useNavigate();
@@ -113,10 +59,13 @@ export default function NavBar() {
   const myProfileActive = viewingOwn && !(viewingGeorge && cameFromGeorgeLink);
 
   return (
-    <nav style={styles.bar} aria-label="Main navigation">
-      <ul style={styles.group}>
+    <nav
+      className="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft bg-navbar px-6 py-3 text-sm"
+      aria-label="Main navigation"
+    >
+      <ul className="flex items-center gap-5">
         <li>
-          <NavLink to="/" end style={linkStyle}>
+          <NavLink to="/" end className={({ isActive }) => linkClass(isActive)}>
             Home
           </NavLink>
         </li>
@@ -125,7 +74,7 @@ export default function NavBar() {
           <li>
             <Link
               to={`/profile?email=${encodeURIComponent(user.email)}`}
-              style={linkStyle({ isActive: myProfileActive })}
+              className={linkClass(myProfileActive)}
               aria-current={myProfileActive ? "page" : undefined}
             >
               My Profile
@@ -133,12 +82,12 @@ export default function NavBar() {
           </li>
         )}
         {/* Exhibition link: shown to everyone, logged in or not (temporary).
-            The state passes the display name "George" for the profile heading. */}
+            The state passes the display name "George" for the profile. */}
         <li>
           <Link
             to={`/profile?email=${encodeURIComponent(GEORGE_EMAIL)}`}
             state={{ name: "George", viaGeorgeLink: true }}
-            style={linkStyle({ isActive: georgeProfileActive })}
+            className={linkClass(georgeProfileActive)}
             aria-current={georgeProfileActive ? "page" : undefined}
           >
             George's Profile
@@ -146,15 +95,21 @@ export default function NavBar() {
         </li>
       </ul>
 
-      <ul style={styles.group}>
+      <ul className="flex items-center gap-5">
         {user ? (
           // sindedemenos: email + logout
           <>
             <li>
-              <span style={styles.emailDisplay}>{user.email}</span>
+              <span className="block max-w-[200px] truncate text-[13px] text-brand">
+                {user.email}
+              </span>
             </li>
             <li>
-              <button style={styles.logOut} onClick={handleLogout}>
+              <button
+                type="button"
+                className="cursor-pointer rounded-md border border-danger bg-transparent px-3.5 py-1.5 text-sm font-semibold text-danger"
+                onClick={handleLogout}
+              >
                 Log out
               </button>
             </li>
@@ -163,12 +118,15 @@ export default function NavBar() {
           // mh sindedemenos: sign in + sign up
           <>
             <li>
-              <NavLink to="/sign-in" style={linkStyle}>
+              <NavLink to="/sign-in" className={({ isActive }) => linkClass(isActive)}>
                 Sign in
               </NavLink>
             </li>
             <li>
-              <NavLink to="/sign-up" style={styles.signUp}>
+              <NavLink
+                to="/sign-up"
+                className="rounded-md bg-brand px-3.5 py-1.5 font-semibold text-on-brand"
+              >
                 Sign up
               </NavLink>
             </li>
