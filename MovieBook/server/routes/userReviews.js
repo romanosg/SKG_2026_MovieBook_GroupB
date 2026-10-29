@@ -5,6 +5,7 @@ const UserReview = require('../models/UserReview');
 const User = require('../models/User');
 const Movie = require('../models/Movie');
 const authMiddleware = require('../middleware/authMiddleware');
+const updateMovieRating = require('../utils/updateMovieRating');
 
 const router = express.Router();
 
@@ -50,11 +51,13 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     const userExists = await User.exists({ _id: user_id });
+
     if (!userExists) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     const movieExists = await Movie.exists({ _id: movie_id });
+
     if (!movieExists) {
       return res.status(404).json({ message: 'Movie not found' });
     }
@@ -67,6 +70,8 @@ router.post('/', authMiddleware, async (req, res) => {
       rating: Number(rating),
       ...(reviewDate ? { reviewDate } : {}),
     });
+
+    await updateMovieRating(movie_id);
 
     return res.status(201).json(review);
   } catch (error) {
@@ -121,6 +126,7 @@ router.get('/check', authMiddleware, async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 });
+
 // GET /api/user-reviews/public
 // Εμφάνιση μόνο δημόσιων κριτικών
 router.get('/public', async (req, res) => {
@@ -137,7 +143,7 @@ router.get('/public', async (req, res) => {
   }
 });
 
- // GET /api/user-reviews/private
+// GET /api/user-reviews/private
 // Εμφάνιση μόνο των ιδιωτικών κριτικών του συνδεδεμένου χρήστη
 router.get('/private', authMiddleware, async (req, res) => {
   try {
@@ -145,7 +151,7 @@ router.get('/private', authMiddleware, async (req, res) => {
 
     const reviews = await UserReview.find({
       user_id,
-      isPrivate: true
+      isPrivate: true,
     })
       .populate('movie_id')
       .sort({ reviewDate: -1 });
@@ -239,6 +245,8 @@ router.put('/:reviewId', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Review not found' });
     }
 
+    await updateMovieRating(review.movie_id);
+
     return res.status(200).json(review);
   } catch (error) {
     if (error.code === 11000) {
@@ -284,6 +292,7 @@ router.delete('/:reviewId', authMiddleware, async (req, res) => {
     }
 
     await UserReview.findByIdAndDelete(reviewId);
+    await updateMovieRating(existingReview.movie_id);
 
     return res.status(200).json({
       message: 'Review deleted successfully',
