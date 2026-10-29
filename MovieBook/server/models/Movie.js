@@ -2,34 +2,35 @@ const mongoose = require('mongoose');
 
 const movieSchema = new mongoose.Schema(
   {
-   title: {
-  type: String,
-  required: true,
-  unique: true,
-  trim: true,
-},
-},
+    title: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
     year: {
       type: Number,
-      required: true
+      required: true,
     },
     genre: {
       type: [String],
-      required: true
+      required: true,
     },
     director: {
       type: String,
       required: true,
-      trim: true
     },
-    description: {
+    actors: {
+      type: [String],
+      required: true,
+    },
+    plot: {
       type: String,
       required: true,
-      trim: true
     },
     poster_url: {
       type: String,
-      default: ''
+      default: '',
     },
     star_review: {
       type: Number,
@@ -39,12 +40,12 @@ const movieSchema = new mongoose.Schema(
       max: 5,
       validate: {
         validator: Number.isInteger,
-        message: 'star_review must be an integer'
-      }
-    }
+        message: 'star_review must be an integer',
+      },
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
