@@ -3,11 +3,10 @@ const mongoose = require('mongoose');
 const movieSchema = new mongoose.Schema(
   {
     title: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
+  type: String,
+  required: true,
+  trim: true
+},
     year: {
       type: Number,
       required: true,
@@ -48,5 +47,5 @@ const movieSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
+movieSchema.index({ title: 1, year: 1 }, { unique: true });
 module.exports = mongoose.model('Movie', movieSchema);

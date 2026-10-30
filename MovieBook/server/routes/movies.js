@@ -5,11 +5,23 @@ const router = express.Router();
 const Movie = require('../models/Movie');
 const mongoose = require('mongoose');
 
+// Add description as an API alias for the existing plot field.
+// The database itself remains unchanged.
+const formatMovie = (movie) => {
+  const data = movie.toObject ? movie.toObject() : movie;
+
+  return {
+    ...data,
+    description: data.plot || ''
+  };
+};
+
 // GET /api/movies - Get all movies
 router.get('/', async (req, res) => {
   try {
     const movies = await Movie.find().sort({ title: 1 });
-    res.status(200).json(movies);
+
+    res.status(200).json(movies.map(formatMovie));
   } catch (error) {
     console.error('Error fetching movies:', error);
     res.status(500).json({ message: 'Failed to fetch movies' });
@@ -17,7 +29,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/movies/search?q=dark
-// Search by title, description, director and genre, in priority order
+// Search by title, plot/description, director and genre
 router.get('/search', async (req, res) => {
   try {
     const query = req.query.q || req.query.title;
@@ -30,7 +42,7 @@ router.get('/search', async (req, res) => {
 
     const searchTerm = query.trim();
 
-    // Escape special regex characters so the input is treated as plain text
+    // Escape special regex characters
     const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     const regex = new RegExp(escapedTerm, 'i');
@@ -38,7 +50,7 @@ router.get('/search', async (req, res) => {
     const movies = await Movie.find({
       $or: [
         { title: regex },
-        { description: regex },
+        { plot: regex },
         { director: regex },
         { genre: regex }
       ]
@@ -48,7 +60,7 @@ router.get('/search', async (req, res) => {
     const getPriority = (movie) => {
       if (regex.test(movie.title || '')) return 1;
 
-      if (regex.test(movie.description || '')) return 2;
+      if (regex.test(movie.plot || '')) return 2;
 
       if (regex.test(movie.director || '')) return 3;
 
@@ -72,7 +84,7 @@ router.get('/search', async (req, res) => {
       return a.title.localeCompare(b.title);
     });
 
-    res.status(200).json(movies);
+    res.status(200).json(movies.map(formatMovie));
   } catch (error) {
     console.error('Error searching movies:', error);
     res.status(500).json({
@@ -96,7 +108,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Movie not found' });
     }
 
-    res.status(200).json(movie);
+    res.status(200).json(formatMovie(movie));
   } catch (error) {
     console.error('Error fetching movie:', error);
     res.status(500).json({ message: 'Failed to fetch movie' });
