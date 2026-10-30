@@ -2,3 +2,8 @@
 **/.env
 node_modules/
 **/node_modules/
+# Local data and temporary scripts
+/data/
+server/checkMovieDescription.js
+server/importMovies.js
+server/updatePosterUrls.js
