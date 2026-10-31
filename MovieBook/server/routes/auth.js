@@ -108,26 +108,25 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    // identifier mporei na einai email h username
+    const { identifier, email: emailField, password } = req.body;
+    const raw = (identifier ?? emailField ?? '').trim();
 
-    if (
-      typeof email !== 'string' ||
-      typeof password !== 'string' ||
-      !email.trim() ||
-      !password
-    ) {
+    if (!raw || typeof password !== 'string' || !password) {
       return res.status(400).json({
-        message: 'Email and password are required.',
+        message: 'Email/username and password are required.',
       });
     }
 
-    const user = await User.findOne({
-      email: email.trim().toLowerCase(),
-    });
+    // an periexei @ to theloume ws email, alliws ws username
+    const isEmail = raw.includes('@');
+    const user = await User.findOne(
+      isEmail ? { email: raw.toLowerCase() } : { username: raw }
+    );
 
     if (!user) {
       return res.status(401).json({
-        message: 'Invalid email or password.',
+        message: 'Invalid email/username or password.',
       });
     }
 

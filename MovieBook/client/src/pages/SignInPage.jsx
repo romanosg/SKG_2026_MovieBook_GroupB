@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "../components/PageLayout";
-import { isValidEmail, isValidPassword } from "../utils/validation";
+import { isValidPassword } from "../utils/validation";
 
 export default function SignInPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -15,8 +15,8 @@ export default function SignInPage() {
     e.preventDefault();
 
     // Empty or not meeting the sign-up criteria: clear both fields
-    if (!isValidEmail(email) || !isValidPassword(password)) {
-      setEmail("");
+    if (!identifier.trim() || !isValidPassword(password)) {
+      setIdentifier("");
       setPassword("");
       setError("Sign in information set up incorrectly. Please try again!");
       return;
@@ -30,7 +30,7 @@ export default function SignInPage() {
       const response = await fetch("http://localhost:3000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }),
       });
 
       const data = await response.json();
@@ -62,13 +62,13 @@ export default function SignInPage() {
         noValidate
       >
         <label className="field">
-          Email
+          Email or username
           <input
             className="input"
-            type="email"
-            value={email}
+            type="text"
+            value={identifier}
             onChange={(e) => {
-              setEmail(e.target.value);
+              setIdentifier(e.target.value);
               setError("");
             }}
           />

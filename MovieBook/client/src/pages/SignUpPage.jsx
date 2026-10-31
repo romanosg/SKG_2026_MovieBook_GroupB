@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "../components/PageLayout";
-import { isValidEmail, getPasswordRules, isValidPassword } from "../utils/validation";
+import { isValidEmail, getPasswordRules, isValidPassword, isValidUsername } from "../utils/validation";
 
 // Checks day/month/year form a real date that isn't in the future
 const isValidBirthdate = (day, month, year) => {
@@ -20,6 +20,7 @@ const isValidBirthdate = (day, month, year) => {
 export default function SignUpPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
@@ -66,6 +67,9 @@ export default function SignUpPage() {
     if (!isValidEmail(email)) {
       newErrors.email = "Please enter a valid email address.";
     }
+    if (!isValidUsername(username)) {
+      newErrors.username = "Username must be 3–30 characters: letters, numbers, or underscores.";
+    }
     if (!isValidBirthdate(day, month, year)) {
       newErrors.birthdate = "Enter a valid date as DD / MM / YYYY.";
     }
@@ -88,14 +92,19 @@ export default function SignUpPage() {
       const response = await fetch("http://localhost:3000/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, dateOfBirth, password }),
+        body: JSON.stringify({ email, username, dateOfBirth, password }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        // p.x. email idi yparxei (409): the server's message is shown under the email box
-        setErrors({ email: data.message });
+        // p.x. email h username idi yparxoun (409): show server message
+        const msg = data.message || "";
+        if (msg.toLowerCase().includes("username")) {
+          setErrors({ username: msg });
+        } else {
+          setErrors({ email: msg });
+        }
         return;
       }
 
@@ -138,6 +147,30 @@ export default function SignUpPage() {
             required
           />
           {errors.email && <span className="error">{errors.email}</span>}
+        </label>
+
+        <label className="field">
+          Username
+          <input
+            className={`input ${errors.username ? "border-danger" : ""}`}
+            type="text"
+            value={username}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              setErrors((prev) => ({ ...prev, username: undefined }));
+            }}
+            onBlur={() => {
+              // Check when leaving the field (only if something was typed)
+              if (username !== "" && !isValidUsername(username)) {
+                setErrors((prev) => ({
+                  ...prev,
+                  username: "Username must be 3–30 characters: letters, numbers, or underscores.",
+                }));
+              }
+            }}
+            required
+          />
+          {errors.username && <span className="error">{errors.username}</span>}
         </label>
 
         <div className="field" role="group" aria-labelledby="dob-label">
