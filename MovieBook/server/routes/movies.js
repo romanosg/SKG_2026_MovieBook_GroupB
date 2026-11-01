@@ -12,7 +12,7 @@ const formatMovie = (movie) => {
 
   return {
     ...data,
-    description: data.plot || ''
+    description: data.plot || data.description || ''
   };
 };
 

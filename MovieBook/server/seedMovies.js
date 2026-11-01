@@ -21,11 +21,23 @@ async function seedMovies() {
     let unchanged = 0;
 
     for (const movieData of moviesData) {
-      const result = await Movie.updateOne(
-        { title: movieData.title },
-        { $set: movieData },
-        { upsert: true }
-      );
+  const { description, ...movieFields } = movieData;
+
+  const movieToSave = {
+    ...movieFields,
+    plot: movieData.plot || description || '',
+  };
+
+  const result = await Movie.updateOne(
+    {
+      title: movieToSave.title,
+      year: movieToSave.year,
+    },
+    {
+      $setOnInsert: movieToSave,
+    },
+    { upsert: true }
+  );
 
       if (result.upsertedCount > 0) {
         console.log(`Added: ${movieData.title}`);
