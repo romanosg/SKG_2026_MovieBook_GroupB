@@ -2,9 +2,9 @@
 export const isValidEmail = (value) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
 
-
+// Username: 3-30 chars, letters/numbers/underscores
 export const isValidUsername = (value) =>
-  /^[a-zA-Z][a-zA-Z0-9_]{2,15}$/.test(value.trim());
+  /^[A-Za-z0-9_]{3,30}$/.test(value.trim());
 
 // The three password rules
 export const getPasswordRules = (value) => [
