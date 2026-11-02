@@ -7,6 +7,7 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/auth');
 const movieRoutes = require('./routes/movies');
+const reviewCommentRoutes = require('./routes/reviewComments');
 const watchedMovieRoutes = require('./routes/watchedMovies');
 const userReviewRoutes = require('./routes/userReviews');
 const userRoutes = require('./routes/user');
@@ -26,7 +27,7 @@ app.use('/api/movies', movieRoutes);
 app.use('/api/watched-movies', watchedMovieRoutes);
 app.use('/api/user-reviews', userReviewRoutes);
 app.use('/api/user', userRoutes);
-
+app.use('/api/review-comments', reviewCommentRoutes);
 // Root route
 app.get('/', (req, res) => {
   res.send('Hello from your Node.js server with Express!');

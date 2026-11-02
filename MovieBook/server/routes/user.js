@@ -5,9 +5,10 @@ const authMiddleware = require('../middleware/authMiddleware');
 const UserReview = require('../models/UserReview');
 const WatchedMovie = require('../models/WatchedMovie');
 const router = express.Router();
-
+const mongoose = require('mongoose');
 // Calculate user's age in whole years
 function calculateAge(dateOfBirth) {
+  if (!dateOfBirth) return null;
   const today = new Date();
   let age = today.getFullYear() - dateOfBirth.getFullYear();
 
@@ -173,7 +174,54 @@ router.get('/user-info', async (req, res) => {
     });
   }
 });
+// GET /api/user/public/:userId
+// View another user's public profile
+router.get('/public/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
 
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({
+        message: 'Invalid userId.',
+      });
+    }
+
+    const user = await User.findById(userId).select(
+      'email username dateOfBirth photo aboutMe hideEmail hideAge'
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found.',
+      });
+    }
+
+    const publicUser = {
+      id: user._id,
+      username: user.username,
+      photo: user.photo,
+      aboutMe: user.aboutMe,
+    };
+
+    if (!user.hideEmail) {
+      publicUser.email = user.email;
+    }
+
+    if (!user.hideAge) {
+      publicUser.age = calculateAge(user.dateOfBirth);
+    }
+
+    return res.status(200).json({
+      user: publicUser,
+    });
+  } catch (error) {
+    console.error('Public profile error:', error);
+
+    return res.status(500).json({
+      message: 'An error occurred while fetching the user profile.',
+    });
+  }
+});
 // DELETE /api/user/account
 
 router.delete('/account', authMiddleware, async (req, res) => {
