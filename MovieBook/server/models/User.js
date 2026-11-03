@@ -50,7 +50,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+	hideAboutMe: { 
+		type: Boolean, 
+		default: false },
   },
+
   {
     timestamps: true,
   }

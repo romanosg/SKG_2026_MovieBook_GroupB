@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { resizeImage } from "../utils/image";
 
 // Shared look of the profile photo circle
 const AVATAR_CLASS =
@@ -10,22 +11,60 @@ const CHECK_LABEL_CLASS =
 const CHECKBOX_CLASS = "m-0 size-[26px] cursor-pointer accent-brand";
 
 const MAX_SIZE_MB = 5;
+const ABOUT_MAX_LENGTH = 500; // the server refuses a longer About me
+
+// A small message: saving..., saved, or an error. status = { kind: "saving" | "ok" | "error", text }
+function StatusText({ status }) {
+  if (!status) return null;
+  const color =
+    status.kind === "ok" ? "text-success" : status.kind === "error" ? "text-danger-text" : "text-muted";
+  return (
+    <span role="status" className={`text-xs ${color}`}>
+      {status.text}
+    </span>
+  );
+}
 
 export default function Profile({
   name = "Original",
   email = "originalemail@gmail.com",
   age = null,
-  avatarUrl = "",
-  about: initialAbout = "",
-  canEdit = false, // neo prop: an false, read-only mode
-  onAboutChange, // optional: called with the new About me text
-  onPhotoChange, // optional: called with the new photo as a data URL
-  onDeleteAccount, // optional: called after the user confirms deleting their account
+  photo: initialPhoto = "", // the saved profile photo (a web address or a data URL)
+  about: initialAbout = "", // the saved About me text
+  aboutHidden = false, // for visitors: the owner keeps About me private
+  hideEmail = false, // the owner's privacy settings, as saved on the server
+  hideAge = false,
+  hideAboutMe = false,
+  canEdit = false, // true only for the profile's owner, once their data has loaded
+  // The next four are async: they resolve when saved, and throw an Error (with a message) if not
+  onSavePhoto, // (photo) => Promise
+  onSaveAbout, // (text) => Promise
+  onChangeHide, // (field, value) => Promise   field: "hideEmail" | "hideAge" | "hideAboutMe"
+  onDeleteAccount, // () => Promise
   onSeeReviews, // optional: called when "Go See My Reviews" is clicked
 }) {
-  const [photo, setPhoto] = useState(avatarUrl);
+  // Photo: what is shown now, and what is saved on the server
+  const [photo, setPhoto] = useState(initialPhoto);
+  const [savedPhoto, setSavedPhoto] = useState(initialPhoto);
+  const [photoStatus, setPhotoStatus] = useState(null);
+  const [fileError, setFileError] = useState("");
+  const inputRef = useRef(null);
+
+  // About me: what is typed now, and what is saved on the server
   const [about, setAbout] = useState(initialAbout);
+  const [savedAbout, setSavedAbout] = useState(initialAbout);
+  const [aboutStatus, setAboutStatus] = useState(null);
   const aboutRef = useRef(null);
+
+  // The three "Hide ..." checkboxes
+  const [hide, setHide] = useState({ hideEmail, hideAge, hideAboutMe });
+  const [hideError, setHideError] = useState("");
+
+  // Delete account popup
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const noButtonRef = useRef(null);
 
   // Grow the About me box to fit its text (never smaller than its minimum height)
   const fitAbout = () => {
@@ -43,55 +82,57 @@ export default function Profile({
     return () => window.removeEventListener("resize", fitAbout);
   }, []);
 
-  const [error, setError] = useState("");
-  const inputRef = useRef(null);
-
-  // Delete account popup
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const noButtonRef = useRef(null);
-
   useEffect(() => {
     if (!confirmOpen) return;
     noButtonRef.current?.focus(); // "No" is focused first: the safe choice
     const handleKey = (e) => {
-      if (e.key === "Escape") setConfirmOpen(false);
+      if (e.key === "Escape" && !deleting) setConfirmOpen(false);
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [confirmOpen]);
-
-  const handleConfirmDelete = () => {
-    setConfirmOpen(false);
-    onDeleteAccount?.(); // for now the page only logs the user out (see ProfilePage)
-  };
+  }, [confirmOpen, deleting]);
 
   const initial = name.trim().charAt(0).toUpperCase();
 
-  const handleFile = (e) => {
+  // ---- photo ----
+  const handleFile = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = ""; // so the same file can be chosen again later
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Please choose an image file.");
+      setFileError("Please choose an image file.");
       return;
     }
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setError(`Image must be under ${MAX_SIZE_MB} MB.`);
+      setFileError(`Image must be under ${MAX_SIZE_MB} MB.`);
       return;
     }
 
-    setError("");
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhoto(reader.result);
-      onPhotoChange?.(reader.result);
-    };
-    reader.readAsDataURL(file);
+    setFileError("");
+    try {
+      setPhoto(await resizeImage(file)); // shown right away, saved when "Save photo" is pressed
+      setPhotoStatus(null);
+    } catch (err) {
+      setFileError(err.message);
+    }
   };
 
+  const handleSavePhoto = async () => {
+    setPhotoStatus({ kind: "saving", text: "Saving..." });
+    try {
+      await onSavePhoto?.(photo);
+      setSavedPhoto(photo);
+      setPhotoStatus({ kind: "ok", text: "Photo saved." });
+    } catch (err) {
+      setPhotoStatus({ kind: "error", text: err.message || "Could not save the photo." });
+    }
+  };
+
+  // ---- about me ----
   const updateAbout = (value) => {
     setAbout(value);
-    onAboutChange?.(value);
+    setAboutStatus(null);
   };
 
   // Enter already makes a new line in a textarea.
@@ -101,6 +142,7 @@ export default function Profile({
     e.preventDefault();
     const el = e.target;
     const { selectionStart, selectionEnd, value } = el;
+    if (value.length - (selectionEnd - selectionStart) + 1 > ABOUT_MAX_LENGTH) return;
     updateAbout(value.slice(0, selectionStart) + "\t" + value.slice(selectionEnd));
     // put the cursor right after the inserted tab
     requestAnimationFrame(() => {
@@ -108,15 +150,45 @@ export default function Profile({
     });
   };
 
-  // Not functional yet: there is nowhere to store this information
-  const handleSavePhoto = () => {
-    // TODO: save the photo for this user once the server supports it
+  const handleSaveAbout = async () => {
+    setAboutStatus({ kind: "saving", text: "Saving..." });
+    try {
+      await onSaveAbout?.(about);
+      setSavedAbout(about);
+      setAboutStatus({ kind: "ok", text: "About me saved." });
+    } catch (err) {
+      setAboutStatus({ kind: "error", text: err.message || "Could not save About me." });
+    }
   };
-  const handleSaveAbout = () => {
-    // TODO: save "About me" for this user once the server supports it
+
+  // ---- "Hide ..." checkboxes ----
+  const handleHideChange = async (field, checked) => {
+    setHide((previous) => ({ ...previous, [field]: checked })); // shown right away
+    setHideError("");
+    try {
+      await onChangeHide?.(field, checked);
+    } catch (err) {
+      setHide((previous) => ({ ...previous, [field]: !checked })); // put it back
+      setHideError(err.message || "Could not save this setting.");
+    }
   };
-  const handleSeeReviews = () => {
-    onSeeReviews?.(); // the page decides where this leads (see ProfilePage)
+
+  // ---- delete account ----
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await onDeleteAccount?.(); // on success the page logs the user out and leaves
+      setConfirmOpen(false);
+    } catch (err) {
+      setDeleteError(err.message || "Could not delete the account.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const closeDialog = () => {
+    if (!deleting) setConfirmOpen(false);
   };
 
   // The photo, or the first letter of the name
@@ -135,7 +207,10 @@ export default function Profile({
           <button
             type="button"
             className="btn btn-danger px-4 py-2"
-            onClick={() => setConfirmOpen(true)}
+            onClick={() => {
+              setDeleteError("");
+              setConfirmOpen(true);
+            }}
           >
             Delete account
           </button>
@@ -143,7 +218,6 @@ export default function Profile({
       </div>
 
       <div className="mb-6 flex items-center gap-3.5">
-        {/* canEdit=true: avatar einai koumpi, canEdit=false: aplo div */}
         {canEdit ? (
           <button
             type="button"
@@ -157,7 +231,6 @@ export default function Profile({
           <div className={AVATAR_CLASS}>{avatarContent}</div>
         )}
 
-        {/* 'Change photo' mono an canEdit=true */}
         {canEdit && (
           <div className="flex flex-col items-start gap-1.5">
             <button
@@ -168,11 +241,23 @@ export default function Profile({
               {photo ? "Change photo" : "Upload photo"}
             </button>
             <div className="hint">
-              {error ? <span className="text-danger-text">{error}</span> : "JPG or PNG, up to 5 MB"}
+              {fileError ? (
+                <span className="text-danger-text">{fileError}</span>
+              ) : (
+                "JPG or PNG, up to 5 MB"
+              )}
             </div>
-            <button type="button" className="btn py-1.5" onClick={handleSavePhoto}>
-              Save photo
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="btn py-1.5"
+                disabled={photo === savedPhoto || photoStatus?.kind === "saving"}
+                onClick={handleSavePhoto}
+              >
+                Save photo
+              </button>
+              <StatusText status={photoStatus} />
+            </div>
           </div>
         )}
 
@@ -190,11 +275,15 @@ export default function Profile({
           <span className="mr-1 font-bold">Email:</span>
           {email}
         </p>
-        {/* Only for the profile's owner. Not functional yet: nothing is stored for it. */}
         {canEdit && (
           <label className={CHECK_LABEL_CLASS}>
             Hide email
-            <input type="checkbox" className={CHECKBOX_CLASS} />
+            <input
+              type="checkbox"
+              className={CHECKBOX_CLASS}
+              checked={hide.hideEmail}
+              onChange={(e) => handleHideChange("hideEmail", e.target.checked)}
+            />
           </label>
         )}
       </div>
@@ -208,11 +297,17 @@ export default function Profile({
           {canEdit && (
             <label className={CHECK_LABEL_CLASS}>
               Hide age
-              <input type="checkbox" className={CHECKBOX_CLASS} />
+              <input
+                type="checkbox"
+                className={CHECKBOX_CLASS}
+                checked={hide.hideAge}
+                onChange={(e) => handleHideChange("hideAge", e.target.checked)}
+              />
             </label>
           )}
         </div>
       )}
+      {hideError && <p className="mb-3 text-xs text-danger-text">{hideError}</p>}
 
       <h3 className="mt-6 mb-2 text-base font-bold">About me</h3>
 
@@ -224,31 +319,51 @@ export default function Profile({
             className="block min-h-[280px] w-full resize-none overflow-hidden rounded-md border border-line bg-field px-3 py-2.5 leading-normal text-main [tab-size:4] placeholder:text-muted"
             aria-label="About me"
             placeholder="Write something about yourself..."
+            maxLength={ABOUT_MAX_LENGTH}
             value={about}
             onChange={(e) => updateAbout(e.target.value)}
             onKeyDown={handleAboutKeyDown}
           />
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <button type="button" className="btn py-1.5" onClick={handleSaveAbout}>
-              Save about me
-            </button>
-            {/* Not functional yet: nothing is stored for it */}
+          <p className="hint mt-1 text-right">
+            {about.length} / {ABOUT_MAX_LENGTH}
+          </p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="btn py-1.5"
+                disabled={about === savedAbout || aboutStatus?.kind === "saving"}
+                onClick={handleSaveAbout}
+              >
+                Save about me
+              </button>
+              <StatusText status={aboutStatus} />
+            </div>
             <label className={CHECK_LABEL_CLASS}>
               Hide about me
-              <input type="checkbox" className={CHECKBOX_CLASS} />
+              <input
+                type="checkbox"
+                className={CHECKBOX_CLASS}
+                checked={hide.hideAboutMe}
+                onChange={(e) => handleHideChange("hideAboutMe", e.target.checked)}
+              />
             </label>
           </div>
         </>
       ) : (
         <div className="block min-h-[100px] w-full rounded-md border border-line-soft bg-field px-3 py-2.5 leading-normal whitespace-pre-wrap text-muted [tab-size:4]">
-          {about || <span className="text-faint">Nothing written yet.</span>}
+          {aboutHidden ? (
+            <span className="text-faint">Hidden by this user.</span>
+          ) : (
+            initialAbout || <span className="text-faint">Nothing written yet.</span>
+          )}
         </div>
       )}
 
       {/* Only for the profile's owner */}
       {canEdit && (
         <div className="mt-6">
-          <button type="button" className="btn py-1.5" onClick={handleSeeReviews}>
+          <button type="button" className="btn py-1.5" onClick={() => onSeeReviews?.()}>
             Go See My Reviews
           </button>
         </div>
@@ -257,7 +372,7 @@ export default function Profile({
       {confirmOpen && (
         <div
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-overlay p-4"
-          onClick={() => setConfirmOpen(false)}
+          onClick={closeDialog}
         >
           <div
             role="dialog"
@@ -269,16 +384,25 @@ export default function Profile({
             <h3 id="delete-account-title" className="mb-2 text-lg font-bold">
               Delete account
             </h3>
-            <p className="mb-5">Are you sure you want to delete your account?</p>
+            <p className="mb-5">
+              Are you sure you want to delete your account? Your reviews will be deleted too.
+            </p>
+            {deleteError && <p className="mb-4 text-danger-text">{deleteError}</p>}
             <div className="flex justify-center gap-3">
-              <button type="button" className="btn btn-danger px-6 py-2" onClick={handleConfirmDelete}>
-                Yes
+              <button
+                type="button"
+                className="btn btn-danger px-6 py-2"
+                disabled={deleting}
+                onClick={handleConfirmDelete}
+              >
+                {deleting ? "Deleting..." : "Yes"}
               </button>
               <button
                 type="button"
                 ref={noButtonRef}
                 className="btn px-6 py-2"
-                onClick={() => setConfirmOpen(false)}
+                disabled={deleting}
+                onClick={closeDialog}
               >
                 No
               </button>

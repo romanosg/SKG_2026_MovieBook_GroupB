@@ -5,7 +5,7 @@ const STAR_PATH =
   "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
 
 // One star, filled from its left side. fill is 0 to 1 (0.5 = left half filled).
-function Star({ fill, size, filledClass, emptyClass }) {
+export function Star({ fill, size, filledClass, emptyClass }) {
   // Clip between the star's own left and right tips, so 0.5 really is "half a star"
   const clipPercent = fill <= 0 ? 0 : fill >= 1 ? 100 : ((2 + fill * 20) / 24) * 100;
 

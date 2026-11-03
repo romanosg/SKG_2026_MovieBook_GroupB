@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import Profile from "../components/Profile";
 import PageLayout from "../components/PageLayout";
+import { request, clearLogin } from "../utils/api";
 
-// Shows the profile of the email in the address: /profile?email=someone@example.com
-// Without an email it shows the logged-in user's own profile.
+// Shows a profile: /profile?username=anna or /profile?email=someone@example.com
+// Without either it shows the logged-in user's own profile.
 export default function ProfilePage() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -32,42 +33,60 @@ export default function ProfilePage() {
     return () => window.removeEventListener("authChange", handleAuth);
   }, []);
 
-  // The email of the profile being viewed
-  const profileEmail = searchParams.get("email") || loggedUser?.email;
+  // Which profile is being viewed: a username, an email, or (nothing in the address) the logged-in user
+  const usernameParam = searchParams.get("username");
+  const profileEmail = searchParams.get("email") || (usernameParam ? null : loggedUser?.email);
+  const profileKey = usernameParam || profileEmail; // identifies the profile
 
-  // The viewed profile's data from the server.
-  // status: "loading" | "found" | "notfound" | "error"
+  // The viewer owns this profile when they are logged in as the very user being viewed
+  const sameEmail = (a, b) =>
+    Boolean(a) && Boolean(b) && a.trim().toLowerCase() === b.trim().toLowerCase();
+  const isOwner = usernameParam
+    ? Boolean(loggedUser?.username) && loggedUser.username === usernameParam
+    : sameEmail(loggedUser?.email, profileEmail);
+
+  // The viewed profile, from the server. status: "loading" | "found" | "notfound" | "error"
   const [status, setStatus] = useState("loading");
-  const [profileData, setProfileData] = useState(null); // { email, age }
+  const [profile, setProfile] = useState(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  // The login stopped being valid (the token lasts 1 hour)
+  const expireSession = () => {
+    clearLogin();
+    setSessionExpired(true);
+  };
 
   useEffect(() => {
-    if (!profileEmail) return;
+    if (!profileKey) return;
     let cancelled = false;
 
     setStatus("loading");
-    setProfileData(null);
+    setProfile(null);
 
     const loadProfile = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:3000/api/user/user-info?email=${encodeURIComponent(profileEmail)}`
-        );
-        // The server answers in JSON. If it isn't JSON (e.g. the route is missing), data is null.
-        const data = await response.json().catch(() => null);
-
-        if (response.status === 404 && data) {
-          if (!cancelled) setStatus("notfound"); // no user has this email
-          return;
-        }
-        if (!response.ok || !data) throw new Error(`Request failed (${response.status})`);
+        // The owner gets everything about themselves (even what is hidden from others).
+        // Everyone else gets the public version, without what the owner chose to hide.
+        const data = isOwner
+          ? await request("/api/user/profile", { auth: true })
+          : await request(
+              `/api/user/user-info?${usernameParam ? "username" : "email"}=${encodeURIComponent(profileKey)}`
+            );
 
         if (!cancelled) {
-          setProfileData(data.user);
+          setProfile(data.user);
           setStatus("found");
         }
       } catch (err) {
-        console.error("Could not load the profile:", err);
-        if (!cancelled) setStatus("error");
+        if (cancelled) return;
+        if (isOwner && err.status === 401) {
+          expireSession(); // this reloads the page as a visitor
+        } else if (err.status === 404 && err.hasMessage) {
+          setStatus("notfound"); // no user has this email
+        } else {
+          console.error("Could not load the profile:", err);
+          setStatus("error");
+        }
       }
     };
 
@@ -75,48 +94,77 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [profileEmail]);
+  }, [profileKey, usernameParam, isOwner]);
 
-  // The viewer owns this profile when they are logged in with the very email being viewed.
-  // This doesn't wait for the profile data from the server: a slow or failed load
-  // must not take the profile away from its owner.
-  const isOwner =
-    Boolean(loggedUser?.email) &&
-    Boolean(profileEmail) &&
-    loggedUser.email.trim().toLowerCase() === profileEmail.trim().toLowerCase();
+  // The owner can edit once their data has loaded (the buttons act on that data)
+  const canEdit = isOwner && status === "found";
 
-  // The owner can edit, unless the server says no user has this email
-  const canEdit = isOwner && status !== "notfound";
+  // ---- what the buttons on the profile do ----
 
-  // Deleting accounts isn't functional yet: for now "Yes" only logs the user out
-  const handleDeleteAccount = () => {
-    // TODO: delete the account on the server first
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.dispatchEvent(new Event("authChange"));
+  // Saves some profile fields, e.g. { aboutMe: "..." } or { hideAge: true }
+  const saveProfile = async (fields) => {
+    try {
+      await request("/api/user/profile", { method: "PUT", auth: true, body: fields });
+    } catch (err) {
+      if (err.status === 401) {
+        expireSession();
+        throw new Error("Your session expired. Please sign in again.");
+      }
+      throw err;
+    }
+  };
+
+  const handleSavePhoto = (photo) => saveProfile({ photo });
+  const handleSaveAbout = (aboutMe) => saveProfile({ aboutMe });
+  const handleChangeHide = (field, value) => saveProfile({ [field]: value });
+
+  // Deletes the account, then logs out and goes to the homepage
+  const handleDeleteAccount = async () => {
+    try {
+      await request("/api/user/account", { method: "DELETE", auth: true });
+    } catch (err) {
+      if (err.status === 401) {
+        expireSession();
+        throw new Error("Your session expired. Please sign in again.");
+      }
+      throw err;
+    }
+    clearLogin();
     navigate("/");
   };
 
   // "Go See My Reviews": opens the reviews page of the profile being viewed
   const handleSeeReviews = () => {
-    navigate(`/reviews?email=${encodeURIComponent(profileEmail)}`);
+    if (loggedUser?.email) navigate(`/reviews?email=${encodeURIComponent(loggedUser.email)}`);
   };
 
+  const sessionBanner = sessionExpired && (
+    <p className="mb-4 text-danger-text">
+      Your session expired. Please{" "}
+      <Link to="/sign-in" className="underline">
+        sign in
+      </Link>{" "}
+      again.
+    </p>
+  );
+
   // No email in the address and nobody logged in
-  if (!profileEmail) {
+  if (!profileKey) {
     return (
       <PageLayout page="profile">
+        {sessionBanner}
         <p className="text-muted">No profile selected.</p>
       </PageLayout>
     );
   }
 
-  // What to show for email and age in each situation
+  // What to show in each situation. The server leaves out what a user chose to hide,
+  // so a missing email / age / About me means "hidden".
   let email = "Loading...";
   let age = null; // null hides the Age line
   if (status === "found") {
-    email = profileData.email;
-    age = profileData.age;
+    email = profile.email ?? "Hidden";
+    age = profile.age ?? "Hidden";
   } else if (status === "notfound") {
     email = "User not found";
     age = "Unknown";
@@ -124,23 +172,37 @@ export default function ProfilePage() {
     email = "Unavailable";
     age = "Unavailable";
   }
+  const found = status === "found";
 
-  // Users don't have a name stored yet: use a name passed by the link we came from,
-  // otherwise the start of the email (used for the photo's letter)
-  const name = location.state?.name || profileEmail.split("@")[0];
+  // The photo's letter: the username, else a name passed by the link we came from,
+  // else the start of the email
+  const name =
+    profile?.username || usernameParam || location.state?.name || (profileEmail ?? "").split("@")[0];
 
   return (
     <PageLayout page="profile" className="flex">
-      {/* key: switching between profiles starts the card fresh */}
-      <Profile
-        key={profileEmail}
-        name={name}
-        email={email}
-        age={age}
-        canEdit={canEdit}
-        onDeleteAccount={handleDeleteAccount}
-        onSeeReviews={handleSeeReviews}
-      />
+      <div className="flex min-w-0 flex-1 flex-col">
+        {sessionBanner}
+        {/* key: a new profile, or the data arriving, starts the card fresh */}
+        <Profile
+          key={`${profileKey}-${status}`}
+          name={name}
+          email={email}
+          age={age}
+          photo={found ? profile.photo || "" : ""}
+          about={found ? profile.aboutMe || "" : ""}
+          aboutHidden={found && profile.aboutMe === undefined}
+          hideEmail={Boolean(profile?.hideEmail)}
+          hideAge={Boolean(profile?.hideAge)}
+          hideAboutMe={Boolean(profile?.hideAboutMe)}
+          canEdit={canEdit}
+          onSavePhoto={handleSavePhoto}
+          onSaveAbout={handleSaveAbout}
+          onChangeHide={handleChangeHide}
+          onDeleteAccount={handleDeleteAccount}
+          onSeeReviews={handleSeeReviews}
+        />
+      </div>
     </PageLayout>
   );
 }

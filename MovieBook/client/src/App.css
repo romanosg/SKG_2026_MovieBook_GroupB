@@ -13,10 +13,31 @@
   --color-navbar: #1b1b1b; /*    header bar */
   --color-surface: #242424; /*   cards, input boxes, popups, page buttons */
   --color-field: #1b1b1b; /*     text areas inside cards (About me) */
+  --color-surface-light: #2e2e2e; /* your own review on a movie page (a bit lighter than a card) */
 
-  /* Brand (the blue) */
-  --color-brand: #8ab4f8; /*     blue buttons, links, small labels, checkboxes */
-  --color-on-brand: #1b1b1b; /*  text written on blue buttons */
+  /* Blue words and lines: links, small labels (Genre, Director...), genre tags,
+     underlines and checkboxes */
+  --color-brand: #8ab4f8;
+  /* The email in the header bar */
+  --color-email: #8ab4f8;
+
+  /* Blue buttons: Search, Sign in, Create account, Sign up, Save, Go See My Reviews, No */
+  --color-btn: #8ab4f8;
+  --color-on-btn: #1b1b1b; /*          their text */
+
+  /* Page bar buttons: First, Previous, Next, Last, Go */
+  --color-nav-btn: #8ab4f8;
+  --color-on-nav-btn: #1b1b1b; /*      their text */
+  --color-nav-btn-line: #8ab4f8; /*    their outline */
+
+  /* Page bar numbers */
+  --color-num-btn: #242424;
+  --color-on-num-btn: #e8e8e8; /*      their text */
+  --color-num-btn-line: #4a4a4a; /*    their outline */
+  /* ...and the current page number */
+  --color-num-btn-active: #8ab4f8;
+  --color-on-num-btn-active: #1b1b1b;
+  --color-num-btn-active-line: #8ab4f8;
 
   /* Borders (lines that separate elements) */
   --color-line: #4a4a4a; /*      outlines of input boxes, cards and buttons */
@@ -92,7 +113,7 @@ html[data-page="profile"] {
 @layer components {
   /* Blue filled button: Search, Create account, ... */
   .btn {
-    @apply cursor-pointer rounded-md bg-brand px-3.5 py-2.5 text-sm font-semibold text-on-brand disabled:cursor-default disabled:opacity-40;
+    @apply cursor-pointer rounded-md bg-btn px-3.5 py-2.5 text-sm font-semibold text-on-btn disabled:cursor-default disabled:opacity-40;
   }
   /* Red version of a button: Delete account, Yes */
   .btn-danger {
@@ -128,12 +149,17 @@ html[data-page="profile"] {
     @apply text-xs text-danger-text;
   }
 
-  /* Page number buttons (homepage) */
-  .page-btn {
-    @apply cursor-pointer rounded-md border border-line bg-surface px-3 py-1.5 text-sm font-normal text-main;
+  /* Page bar buttons (homepage): First, Previous, Next, Last, Go */
+  .nav-btn {
+    @apply cursor-pointer rounded-md border border-nav-btn-line bg-nav-btn px-3.5 py-1.5 text-sm font-semibold text-on-nav-btn disabled:cursor-default disabled:opacity-40;
   }
-  .page-btn-active {
-    @apply border-brand bg-brand font-semibold text-on-brand;
+
+  /* Page numbers (homepage), and the current page */
+  .num-btn {
+    @apply cursor-pointer rounded-md border border-num-btn-line bg-num-btn px-3 py-1.5 text-sm font-normal text-on-num-btn;
+  }
+  .num-btn-active {
+    @apply border-num-btn-active-line bg-num-btn-active font-semibold text-on-num-btn-active;
   }
 
   /* Hides the browser's own "reveal password" icon (Edge) on password boxes */

@@ -5,10 +5,9 @@ const authMiddleware = require('../middleware/authMiddleware');
 const UserReview = require('../models/UserReview');
 const WatchedMovie = require('../models/WatchedMovie');
 const router = express.Router();
-const mongoose = require('mongoose');
+
 // Calculate user's age in whole years
 function calculateAge(dateOfBirth) {
-  if (!dateOfBirth) return null;
   const today = new Date();
   let age = today.getFullYear() - dateOfBirth.getFullYear();
 
@@ -43,6 +42,8 @@ router.get('/profile', authMiddleware, async (req, res) => {
         aboutMe: user.aboutMe,
         hideEmail: user.hideEmail,
         hideAge: user.hideAge,
+        hideAboutMe: user.hideAboutMe,
+        age: calculateAge(user.dateOfBirth), // the owner sees their age even when it is hidden from others
       },
     });
   } catch (error) {
@@ -57,7 +58,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
 // Update profile photo, about me and privacy settings
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
-    const { photo, aboutMe, hideEmail, hideAge } = req.body;
+    const { photo, aboutMe, hideEmail, hideAge, hideAboutMe } = req.body;
     const updates = {};
 
     if (photo !== undefined) {
@@ -96,6 +97,15 @@ router.put('/profile', authMiddleware, async (req, res) => {
       updates.hideAge = hideAge;
     }
 
+    if (hideAboutMe !== undefined) {
+      if (typeof hideAboutMe !== 'boolean') {
+        return res.status(400).json({
+          message: 'hideAboutMe must be true or false.',
+        });
+      }
+      updates.hideAboutMe = hideAboutMe;
+    }
+
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({
         message: 'No valid profile fields provided.',
@@ -123,6 +133,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
         aboutMe: user.aboutMe,
         hideEmail: user.hideEmail,
         hideAge: user.hideAge,
+        hideAboutMe: user.hideAboutMe,
       },
     });
   } catch (error) {
@@ -134,19 +145,26 @@ router.put('/profile', authMiddleware, async (req, res) => {
 });
 
 // GET /api/user/user-info?email=someone@example.com
+// GET /api/user/user-info?username=someone
 router.get('/user-info', async (req, res) => {
   try {
-    const { email } = req.query;
+    const { email, username } = req.query;
 
-    if (typeof email !== 'string' || !email.trim()) {
+    // The profile is found by username or by email
+    let filter;
+    if (typeof username === 'string' && username.trim()) {
+      filter = { username: username.trim() };
+    } else if (typeof email === 'string' && email.trim()) {
+      filter = { email: email.trim().toLowerCase() };
+    } else {
       return res.status(400).json({
-        message: 'Email is required.',
+        message: 'Email or username is required.',
       });
     }
 
-    const user = await User.findOne({
-      email: email.trim().toLowerCase(),
-    }).select('email username dateOfBirth photo aboutMe hideEmail hideAge');
+    const user = await User.findOne(filter).select(
+      'email username dateOfBirth photo aboutMe hideEmail hideAge hideAboutMe'
+    );
 
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
@@ -155,8 +173,12 @@ router.get('/user-info', async (req, res) => {
     const publicUser = {
       username: user.username,
       photo: user.photo,
-      aboutMe: user.aboutMe,
     };
+
+    // What the user chose to hide is left out of the answer
+    if (!user.hideAboutMe) {
+      publicUser.aboutMe = user.aboutMe;
+    }
 
     if (!user.hideEmail) {
       publicUser.email = user.email;
@@ -174,54 +196,7 @@ router.get('/user-info', async (req, res) => {
     });
   }
 });
-// GET /api/user/public/:userId
-// View another user's public profile
-router.get('/public/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
 
-    if (!mongoose.isValidObjectId(userId)) {
-      return res.status(400).json({
-        message: 'Invalid userId.',
-      });
-    }
-
-    const user = await User.findById(userId).select(
-      'email username dateOfBirth photo aboutMe hideEmail hideAge'
-    );
-
-    if (!user) {
-      return res.status(404).json({
-        message: 'User not found.',
-      });
-    }
-
-    const publicUser = {
-      id: user._id,
-      username: user.username,
-      photo: user.photo,
-      aboutMe: user.aboutMe,
-    };
-
-    if (!user.hideEmail) {
-      publicUser.email = user.email;
-    }
-
-    if (!user.hideAge) {
-      publicUser.age = calculateAge(user.dateOfBirth);
-    }
-
-    return res.status(200).json({
-      user: publicUser,
-    });
-  } catch (error) {
-    console.error('Public profile error:', error);
-
-    return res.status(500).json({
-      message: 'An error occurred while fetching the user profile.',
-    });
-  }
-});
 // DELETE /api/user/account
 
 router.delete('/account', authMiddleware, async (req, res) => {

@@ -3,6 +3,9 @@ import { Link, useParams, useLocation } from "react-router-dom";
 import { slugify } from "../utils/slug";
 import PageLayout from "../components/PageLayout";
 import StarRating from "../components/StarRating";
+import ReviewList from "../components/ReviewList";
+import { request } from "../utils/api";
+import { getStats } from "../utils/movieReviews";
 
 // star path for the interactive picker in the review form
 const STAR_PATH =
@@ -38,6 +41,7 @@ export default function MoviePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reviews, setReviews] = useState([]);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
 
   // diabazoume ton xristi apo localStorage
   const [loggedUser] = useState(() => {
@@ -109,45 +113,41 @@ export default function MoviePage() {
   // fetch reviews otan fortothei i tenia
   useEffect(() => {
     if (!movie) return;
+    let cancelled = false;
 
     const loadReviews = async () => {
       try {
-        // public reviews gia olous
-        const pubRes = await fetch("http://localhost:3000/api/user-reviews/public");
-        const pubData = pubRes.ok ? await pubRes.json() : [];
+        const isThisMovie = (r) => String(r.movie_id?._id ?? r.movie_id) === String(movie._id);
 
-        // filtraroume mono gia afti ti tenia
-        const publicForMovie = pubData.filter(
-          (r) => String(r.movie_id?._id ?? r.movie_id) === String(movie._id)
-        );
+        // ta public reviews afths ths tainias, apo olous tous xristes
+        const publicList = await request(`/api/user-reviews/public?movie_id=${movie._id}`);
+        const found = publicList.filter(isThisMovie);
 
-        let myReviews = [];
-        const token = localStorage.getItem("token");
-
-        if (token) {
-          // private reviews tou sindedemenos xristi
-          const privRes = await fetch("http://localhost:3000/api/user-reviews/private", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const privData = privRes.ok ? await privRes.json() : [];
-          myReviews = privData.filter(
-            (r) => String(r.movie_id?._id ?? r.movie_id) === String(movie._id)
-          );
+        // ta private reviews tou sindedemenou xristi gia afti ti tenia
+        if (loggedUser) {
+          try {
+            const privateList = await request("/api/user-reviews/private", { auth: true });
+            found.push(...privateList.filter(isThisMovie));
+          } catch {
+            // p.x. likse to login: apla den deixnoume private reviews
+          }
         }
 
-        // ta reviews tou xristi prota, meta ta upoloipa public
-        const myIds = new Set(myReviews.map((r) => r._id));
-        const otherPublic = publicForMovie.filter((r) => !myIds.has(r._id));
-
-        setReviews([...myReviews, ...otherPublic]);
-      } catch {
-        // an apotixei to fetch, apla den deixnoume reviews
+        if (!cancelled) setReviews(found);
+      } catch (err) {
+        console.error("Could not load the reviews:", err);
+      } finally {
+        if (!cancelled) setReviewsLoaded(true);
       }
     };
 
-    // krataei ref gia na to kaloume kai meta to submit
+    // krataei ref gia na to kaloume kai meta apo submit / edit / delete
     loadReviewsRef.current = loadReviews;
     loadReviews();
+
+    return () => {
+      cancelled = true;
+    };
   }, [movie, loggedUser]);
 
   // apostoli tou review
@@ -203,9 +203,8 @@ export default function MoviePage() {
     }
   };
 
-  const publicReviewCount = reviews.filter((r) => !r.isPrivate).length;
-  const reviewCount = movie?.reviewCount ?? publicReviewCount;
-  const averageRating = movie?.averageRating ?? 0;
+  // The movie's rating and review count are worked out from its public reviews
+  const { count: reviewCount, average: averageRating } = getStats(reviews);
 
   return (
     <PageLayout page="movie">
@@ -232,7 +231,7 @@ export default function MoviePage() {
             )}
 
             <div className="min-w-[260px] flex-1">
-              <h1 className="m-0 text-[40px] leading-[1.15] font-bold">{movie.title}</h1>
+              <h1 className="m-0 text-[40px] leading-[1.15] font-bold normal-case">{movie.title}</h1>
               <p className="mt-1.5 text-lg text-muted">{movie.year}</p>
 
               {movie.genre?.length > 0 && (
@@ -259,10 +258,16 @@ export default function MoviePage() {
               </p>
 
               <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-                <span className="text-base">
-                  {reviewCount} public {reviewCount === 1 ? "review" : "reviews"}
-                </span>
-                <StarRating rating={averageRating} size={66} />
+                {reviewsLoaded ? (
+                  <>
+                    <span className="text-base">
+                      {reviewCount} public {reviewCount === 1 ? "review" : "reviews"}
+                    </span>
+                    <StarRating rating={averageRating} size={66} />
+                  </>
+                ) : (
+                  <span className="text-muted">Loading reviews...</span>
+                )}
               </div>
             </div>
           </div>
@@ -328,47 +333,14 @@ export default function MoviePage() {
           </div>
         )}
 
-        {/* section me ta reviews */}
-        {movie && reviews.length > 0 && (
-          <div className="mt-10">
-            <h2 className="label-brand mb-4 text-left text-lg">Reviews</h2>
-            <ul className="flex flex-col gap-4 p-0" style={{ listStyle: "none" }}>
-              {reviews.map((review) => {
-                const isOwn =
-                  loggedUser &&
-                  String(review.user_id?._id ?? review.user_id) ===
-                    String(loggedUser._id ?? loggedUser.id);
-                const authorEmail = review.user_id?.email ?? loggedUser?.email ?? "Unknown";
-                const date = new Date(review.reviewDate).toLocaleDateString("el-GR");
-
-                return (
-                  <li
-                    key={review._id}
-                    className="rounded-[10px] bg-surface p-4"
-                    style={{ borderLeft: isOwn ? "3px solid var(--color-brand)" : "3px solid transparent" }}
-                  >
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-sm">
-                        {isOwn ? "You" : authorEmail}
-                      </span>
-                      {review.isPrivate && (
-                        <span className="rounded-full bg-surface px-2 py-0.5 text-xs text-muted border border-muted">
-                          Private
-                        </span>
-                      )}
-                      <span className="ml-auto text-xs text-muted">{date}</span>
-                    </div>
-                    <StarRating rating={review.rating} size={18} />
-                    <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">{review.text}</p>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
-        {movie && reviews.length === 0 && !loading && (
-          <p className="mt-8 text-muted text-sm">No reviews yet for this movie.</p>
+        {/* ola ta public reviews (kai ta dika tou xristi prwta), me filtra */}
+        {movie && (
+          <ReviewList
+            reviews={reviews}
+            loggedUser={loggedUser}
+            loading={!reviewsLoaded}
+            onChanged={() => loadReviewsRef.current?.()}
+          />
         )}
       </div>
     </PageLayout>

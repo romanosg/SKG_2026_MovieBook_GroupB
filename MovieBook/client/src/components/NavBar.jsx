@@ -100,7 +100,7 @@ export default function NavBar() {
           // sindedemenos: email + logout
           <>
             <li>
-              <span className="block max-w-[200px] truncate text-[13px] text-brand">
+              <span className="block max-w-[200px] truncate text-[13px] text-email">
                 {user.email}
               </span>
             </li>
@@ -125,7 +125,7 @@ export default function NavBar() {
             <li>
               <NavLink
                 to="/sign-up"
-                className="rounded-md bg-brand px-3.5 py-1.5 font-semibold text-on-brand"
+                className="rounded-md bg-btn px-3.5 py-1.5 font-semibold text-on-btn"
               >
                 Sign up
               </NavLink>
