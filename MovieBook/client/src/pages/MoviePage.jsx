@@ -76,17 +76,17 @@ export default function MoviePage() {
 
         let data;
         if (idToLoad) {
-          const response = await fetch(`/api/movies/${idToLoad}`);
-          if (response.status === 400 || response.status === 404) {
-            throw new Error("not-found");
-          }
-          if (!response.ok) throw new Error("failed");
-          data = await response.json();
+         try {
+  data = await request(`/api/movies/${idToLoad}`);
+} catch (err) {
+  if (err.status === 400 || err.status === 404) {
+    throw new Error("not-found");
+  }
+  throw new Error("failed");
+} 
         } else {
           // Opened from a typed or shared link: find the movie by its name
-          const response = await fetch("/api/movies");
-          if (!response.ok) throw new Error("failed");
-          const movies = await response.json();
+          const movies = await request("/api/movies");
           data = movies.find((m) => slugify(m.title) === id.toLowerCase());
           if (!data) throw new Error("not-found");
         }
@@ -168,26 +168,18 @@ export default function MoviePage() {
     setFormSubmitting(true);
 
     try {
-      const res = await fetch("http://localhost:3000/api/user-reviews", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          movie_id: movie._id,
-          rating: formRating,
-          text: formText.trim(),
-          isPrivate: formPrivate,
-        }),
-      });
+     const data = await request("/api/user-reviews", {
+  method: "POST",
+  auth: true,
+  body: {
+    movie_id: movie._id,
+    rating: formRating,
+    text: formText.trim(),
+    isPrivate: formPrivate,
+  },
+});
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setFormError(data.message || "Could not submit review.");
-        return;
-      }
+      
 
       // epithixia: kanoume reset ti forma kai refresh ta reviews
       setFormRating(0);

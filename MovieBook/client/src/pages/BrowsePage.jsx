@@ -56,9 +56,8 @@ export default function BrowsePage() {
       const url = trimmed
         ? `/api/movies/search?title=${encodeURIComponent(trimmed)}`
         : "/api/movies";
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`Request failed (${response.status})`);
-      const data = await response.json();
+     const data = await request(url);
+      
       setMovies(data);
       setSearchTerm(trimmed);
       if (!trimmed) setAllMovies(data); // an empty search returns every movie

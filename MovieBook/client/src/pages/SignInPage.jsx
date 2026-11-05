@@ -1,7 +1,9 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "../components/PageLayout";
 import { isValidPassword } from "../utils/validation";
+import { request } from "../utils/api";
 
 export default function SignInPage() {
   const navigate = useNavigate();
@@ -26,28 +28,23 @@ export default function SignInPage() {
     setError("");
 
     try {
-      // stilvoume email + password sto backend
-      const response = await fetch("http://localhost:3000/api/auth/login", {
+      // Send email/username and password to the backend
+      const data = await request("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
+        body: { identifier, password },
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || "Login failed. Please try again.");
-        setPassword("");
-        return;
-      }
-
-      // apothikevoume token + user sto localStorage
+      // Save token and user in localStorage
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+
       window.dispatchEvent(new Event("authChange"));
       navigate("/");
     } catch (err) {
-      setError("Could not connect to the server. Please try again.");
+      setError(
+        err.message || "Could not connect to the server. Please try again."
+      );
+      setPassword("");
     } finally {
       setLoading(false);
     }
@@ -56,6 +53,7 @@ export default function SignInPage() {
   return (
     <PageLayout page="signIn">
       <h1 className="mb-5 text-center text-2xl font-semibold">Sign in</h1>
+
       <form
         className="mx-auto flex w-[360px] max-w-full flex-col gap-3.5"
         onSubmit={handleSubmit}
@@ -76,6 +74,7 @@ export default function SignInPage() {
 
         <div className="field">
           <label htmlFor="signin-password">Password</label>
+
           <div className="relative">
             <input
               id="signin-password"
@@ -87,6 +86,7 @@ export default function SignInPage() {
                 setError("");
               }}
             />
+
             <button
               type="button"
               className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer text-xs text-brand"

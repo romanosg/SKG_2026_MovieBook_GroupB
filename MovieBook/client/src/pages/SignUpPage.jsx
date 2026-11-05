@@ -1,19 +1,35 @@
+
 import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "../components/PageLayout";
-import { isValidEmail, getPasswordRules, isValidPassword, isValidUsername } from "../utils/validation";
+import {
+  isValidEmail,
+  getPasswordRules,
+  isValidPassword,
+  isValidUsername,
+} from "../utils/validation";
+import { request } from "../utils/api";
 
 // Checks day/month/year form a real date that isn't in the future
 const isValidBirthdate = (day, month, year) => {
-  if (!/^\d{2}$/.test(day) || !/^\d{2}$/.test(month) || !/^\d{4}$/.test(year)) {
+  if (
+    !/^\d{2}$/.test(day) ||
+    !/^\d{2}$/.test(month) ||
+    !/^\d{4}$/.test(year)
+  ) {
     return false;
   }
+
   const d = Number(day);
   const m = Number(month);
   const y = Number(year);
   const date = new Date(y, m - 1, d);
+
   const isRealDate =
-    date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+    date.getFullYear() === y &&
+    date.getMonth() === m - 1 &&
+    date.getDate() === d;
+
   return isRealDate && y >= 1900 && date <= new Date();
 };
 
@@ -39,17 +55,23 @@ export default function SignUpPage() {
   const handleDatePart = (setter, maxLength, nextRef) => (e) => {
     const value = e.target.value.replace(/\D/g, "").slice(0, maxLength);
     setter(value);
-    if (value.length === maxLength) nextRef?.current?.focus();
+
+    if (value.length === maxLength) {
+      nextRef?.current?.focus();
+    }
   };
 
   // Backspace on an empty box moves back to the previous one
   const handleBackspace = (value, prevRef) => (e) => {
-    if (e.key === "Backspace" && value === "") prevRef?.current?.focus();
+    if (e.key === "Backspace" && value === "") {
+      prevRef?.current?.focus();
+    }
   };
 
   // Password field: neutral border when empty, green when valid, red when not
   const rules = getPasswordRules(password);
   const passwordIsValid = rules.every((r) => r.met);
+
   const passwordBorderClass =
     password === ""
       ? "border-line"
@@ -64,54 +86,53 @@ export default function SignUpPage() {
     e.preventDefault();
 
     const newErrors = {};
+
     if (!isValidEmail(email)) {
       newErrors.email = "Please enter a valid email address.";
     }
+
     if (!isValidUsername(username)) {
-      newErrors.username = "Username must be 3–30 characters, start with a letter, and use only letters, numbers or underscores.";
+      newErrors.username =
+        "Username must be 3–30 characters, start with a letter, and use only letters, numbers or underscores.";
     }
+
     if (!isValidBirthdate(day, month, year)) {
       newErrors.birthdate = "Enter a valid date as DD / MM / YYYY.";
     }
+
     if (!isValidPassword(password)) {
       newErrors.password = "Password does not meet the requirements.";
     } else if (confirmPassword !== password) {
       newErrors.confirmPassword = "Passwords do not match!";
-      setConfirmPassword(""); // cleared even if other fields have errors
+      setConfirmPassword("");
     }
 
     setErrors(newErrors);
+
     if (Object.keys(newErrors).length > 0) return;
 
-    // metatrepoume se YYYY-MM-DD gia ton server
+    // Convert to YYYY-MM-DD for the server
     const dateOfBirth = `${year}-${month}-${day}`;
 
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3000/api/auth/register", {
+      const data = await request("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, username, dateOfBirth, password }),
+        body: { email, username, dateOfBirth, password },
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        // p.x. email h username idi yparxoun (409): show server message
-        const msg = data.message || "";
-        if (msg.toLowerCase().includes("username")) {
-          setErrors({ username: msg });
-        } else {
-          setErrors({ email: msg });
-        }
-        return;
-      }
-
-      // epitixia, redirect sto sign-in
+      // Success: redirect to sign-in
       navigate("/sign-in");
     } catch (err) {
-      setErrors({ email: "Could not connect to the server. Please try again." });
+      // Show the server message for duplicate email or username
+      const msg = err.message || "";
+
+      if (msg.toLowerCase().includes("username")) {
+        setErrors({ username: msg });
+      } else {
+        setErrors({ email: msg || "Could not connect to the server. Please try again." });
+      }
     } finally {
       setLoading(false);
     }
@@ -119,7 +140,10 @@ export default function SignUpPage() {
 
   return (
     <PageLayout page="signUp">
-      <h1 className="mb-5 text-center text-2xl font-semibold">Sign up</h1>
+      <h1 className="mb-5 text-center text-2xl font-semibold">
+        Sign up
+      </h1>
+
       <form
         className="mx-auto flex w-[360px] max-w-full flex-col gap-3.5"
         onSubmit={handleSubmit}
@@ -136,17 +160,19 @@ export default function SignUpPage() {
               setErrors((prev) => ({ ...prev, username: undefined }));
             }}
             onBlur={() => {
-              // Check when leaving the field (only if something was typed)
               if (username !== "" && !isValidUsername(username)) {
                 setErrors((prev) => ({
                   ...prev,
-                  username: "Username must be 3–30 characters, start with a letter, and use only letters, numbers or underscores.",
+                  username:
+                    "Username must be 3–30 characters, start with a letter, and use only letters, numbers or underscores.",
                 }));
               }
             }}
             required
           />
-          {errors.username && <span className="error">{errors.username}</span>}
+          {errors.username && (
+            <span className="error">{errors.username}</span>
+          )}
         </label>
 
         <label className="field">
@@ -160,7 +186,6 @@ export default function SignUpPage() {
               setErrors((prev) => ({ ...prev, email: undefined }));
             }}
             onBlur={() => {
-              // Check when leaving the field (only if something was typed)
               if (email !== "" && !isValidEmail(email)) {
                 setErrors((prev) => ({
                   ...prev,
@@ -170,11 +195,14 @@ export default function SignUpPage() {
             }}
             required
           />
-          {errors.email && <span className="error">{errors.email}</span>}
+          {errors.email && (
+            <span className="error">{errors.email}</span>
+          )}
         </label>
 
         <div className="field" role="group" aria-labelledby="dob-label">
           <span id="dob-label">Date of birth</span>
+
           <div className="flex items-center justify-center gap-2">
             <input
               ref={dayRef}
@@ -186,7 +214,9 @@ export default function SignUpPage() {
               value={day}
               onChange={handleDatePart(setDay, 2, monthRef)}
             />
+
             <span className="text-lg text-muted">/</span>
+
             <input
               ref={monthRef}
               className="input w-14 px-1 text-center"
@@ -198,7 +228,9 @@ export default function SignUpPage() {
               onChange={handleDatePart(setMonth, 2, yearRef)}
               onKeyDown={handleBackspace(month, dayRef)}
             />
+
             <span className="text-lg text-muted">/</span>
+
             <input
               ref={yearRef}
               className="input w-20 px-1 text-center"
@@ -211,11 +243,15 @@ export default function SignUpPage() {
               onKeyDown={handleBackspace(year, monthRef)}
             />
           </div>
-          {errors.birthdate && <span className="error">{errors.birthdate}</span>}
+
+          {errors.birthdate && (
+            <span className="error">{errors.birthdate}</span>
+          )}
         </div>
 
         <div className="field">
           <label htmlFor="signup-password">Password</label>
+
           <div className="relative">
             <input
               id="signup-password"
@@ -225,6 +261,7 @@ export default function SignUpPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+
             <button
               type="button"
               className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer text-xs text-brand"
@@ -234,12 +271,17 @@ export default function SignUpPage() {
               {showPassword ? "Hide" : "Show"}
             </button>
           </div>
+
           <ul className="text-xs">
             {rules.map((rule) => (
               <li
                 key={rule.label}
                 className={
-                  rule.met ? "text-success" : showUnmetInRed ? "text-danger" : "text-muted"
+                  rule.met
+                    ? "text-success"
+                    : showUnmetInRed
+                    ? "text-danger"
+                    : "text-muted"
                 }
               >
                 {rule.met ? "✓" : "•"} {rule.label}
@@ -250,6 +292,7 @@ export default function SignUpPage() {
 
         <div className="field">
           <label htmlFor="signup-confirm">Confirm password</label>
+
           <div className="relative">
             <input
               id="signup-confirm"
@@ -258,10 +301,14 @@ export default function SignUpPage() {
               value={confirmPassword}
               onChange={(e) => {
                 setConfirmPassword(e.target.value);
-                setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                setErrors((prev) => ({
+                  ...prev,
+                  confirmPassword: undefined,
+                }));
               }}
               required
             />
+
             <button
               type="button"
               className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer text-xs text-brand"
@@ -271,7 +318,10 @@ export default function SignUpPage() {
               {showConfirm ? "Hide" : "Show"}
             </button>
           </div>
-          {errors.confirmPassword && <span className="error">{errors.confirmPassword}</span>}
+
+          {errors.confirmPassword && (
+            <span className="error">{errors.confirmPassword}</span>
+          )}
         </div>
 
         <button className="btn" type="submit" disabled={loading}>
