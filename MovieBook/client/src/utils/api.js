@@ -1,4 +1,4 @@
-export const API_URL = "http://localhost:3000";
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // Sends a request to the server and returns its JSON answer.
 // If the request fails it throws an Error with the server's message and these extras:
