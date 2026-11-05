@@ -42,7 +42,8 @@ export default function ProfilePage() {
   const sameEmail = (a, b) =>
     Boolean(a) && Boolean(b) && a.trim().toLowerCase() === b.trim().toLowerCase();
   const isOwner = usernameParam
-    ? Boolean(loggedUser?.username) && loggedUser.username === usernameParam
+    ? Boolean(loggedUser?.username) &&
+      loggedUser.username.toLowerCase() === usernameParam.toLowerCase() // same user, whatever the case
     : sameEmail(loggedUser?.email, profileEmail);
 
   // The viewed profile, from the server. status: "loading" | "found" | "notfound" | "error"
@@ -133,10 +134,13 @@ export default function ProfilePage() {
     navigate("/");
   };
 
-  // "Go See My Reviews": opens the reviews page of the profile being viewed
-  const handleSeeReviews = () => {
-    if (loggedUser?.email) navigate(`/reviews?email=${encodeURIComponent(loggedUser.email)}`);
+  // The two buttons under About me open the reviews / watched movies of the profile being viewed.
+  // They are for everybody (not only the owner) and find the user by username.
+  const openList = (path) => {
+    if (profile?.username) navigate(`/${path}?username=${encodeURIComponent(profile.username)}`);
   };
+  const handleSeeReviews = () => openList("reviews");
+  const handleSeeWatched = () => openList("watched");
 
   const sessionBanner = sessionExpired && (
     <p className="mb-4 text-danger-text">
@@ -174,6 +178,10 @@ export default function ProfilePage() {
   }
   const found = status === "found";
 
+  // The heading, and whether the two buttons can be shown (they need the username)
+  const title = profile?.username ? `${profile.username}'s Profile` : "User's Profile";
+  const listsEnabled = found && Boolean(profile?.username);
+
   // The photo's letter: the username, else a name passed by the link we came from,
   // else the start of the email
   const name =
@@ -187,6 +195,7 @@ export default function ProfilePage() {
         <Profile
           key={`${profileKey}-${status}`}
           name={name}
+          title={title}
           email={email}
           age={age}
           photo={found ? profile.photo || "" : ""}
@@ -200,7 +209,8 @@ export default function ProfilePage() {
           onSaveAbout={handleSaveAbout}
           onChangeHide={handleChangeHide}
           onDeleteAccount={handleDeleteAccount}
-          onSeeReviews={handleSeeReviews}
+          onSeeReviews={listsEnabled ? handleSeeReviews : undefined}
+          onSeeWatched={listsEnabled ? handleSeeWatched : undefined}
         />
       </div>
     </PageLayout>

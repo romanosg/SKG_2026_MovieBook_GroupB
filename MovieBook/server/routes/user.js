@@ -6,6 +6,9 @@ const UserReview = require('../models/UserReview');
 const WatchedMovie = require('../models/WatchedMovie');
 const router = express.Router();
 
+// Usernames are compared ignoring upper/lower case ("Anna" = "anna")
+const CASE_INSENSITIVE = { locale: 'en', strength: 2 };
+
 // Calculate user's age in whole years
 function calculateAge(dateOfBirth) {
   const today = new Date();
@@ -162,9 +165,9 @@ router.get('/user-info', async (req, res) => {
       });
     }
 
-    const user = await User.findOne(filter).select(
-      'email username dateOfBirth photo aboutMe hideEmail hideAge hideAboutMe'
-    );
+    const user = await User.findOne(filter)
+      .collation(CASE_INSENSITIVE)
+      .select('email username dateOfBirth photo aboutMe hideEmail hideAge hideAboutMe');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });

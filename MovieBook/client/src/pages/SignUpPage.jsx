@@ -68,7 +68,7 @@ export default function SignUpPage() {
       newErrors.email = "Please enter a valid email address.";
     }
     if (!isValidUsername(username)) {
-      newErrors.username = "Username must be 3–30 characters: letters, numbers, or underscores.";
+      newErrors.username = "Username must be 3–30 characters, start with a letter, and use only letters, numbers or underscores.";
     }
     if (!isValidBirthdate(day, month, year)) {
       newErrors.birthdate = "Enter a valid date as DD / MM / YYYY.";
@@ -126,6 +126,30 @@ export default function SignUpPage() {
         noValidate
       >
         <label className="field">
+          Username
+          <input
+            className={`input ${errors.username ? "border-danger" : ""}`}
+            type="text"
+            value={username}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              setErrors((prev) => ({ ...prev, username: undefined }));
+            }}
+            onBlur={() => {
+              // Check when leaving the field (only if something was typed)
+              if (username !== "" && !isValidUsername(username)) {
+                setErrors((prev) => ({
+                  ...prev,
+                  username: "Username must be 3–30 characters, start with a letter, and use only letters, numbers or underscores.",
+                }));
+              }
+            }}
+            required
+          />
+          {errors.username && <span className="error">{errors.username}</span>}
+        </label>
+
+        <label className="field">
           Email
           <input
             className={`input ${errors.email ? "border-danger" : ""}`}
@@ -147,30 +171,6 @@ export default function SignUpPage() {
             required
           />
           {errors.email && <span className="error">{errors.email}</span>}
-        </label>
-
-        <label className="field">
-          Username
-          <input
-            className={`input ${errors.username ? "border-danger" : ""}`}
-            type="text"
-            value={username}
-            onChange={(e) => {
-              setUsername(e.target.value);
-              setErrors((prev) => ({ ...prev, username: undefined }));
-            }}
-            onBlur={() => {
-              // Check when leaving the field (only if something was typed)
-              if (username !== "" && !isValidUsername(username)) {
-                setErrors((prev) => ({
-                  ...prev,
-                  username: "Username must be 3–30 characters: letters, numbers, or underscores.",
-                }));
-              }
-            }}
-            required
-          />
-          {errors.username && <span className="error">{errors.username}</span>}
         </label>
 
         <div className="field" role="group" aria-labelledby="dob-label">

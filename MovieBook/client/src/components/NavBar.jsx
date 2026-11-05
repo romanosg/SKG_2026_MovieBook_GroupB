@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 
-// Exhibition profile. Only this link knows about George: the profile page itself is generic.
-const GEORGE_EMAIL = "georgerom1999@gmail.com";
-
 // Header link: white with a blue underline when it matches the open page
 const linkClass = (isActive) =>
   `border-b-2 pb-0.5 ${isActive ? "border-brand text-strong" : "border-transparent text-soft"}`;
 
+const sameText = (a, b) => Boolean(a) && Boolean(b) && a.toLowerCase() === b.toLowerCase();
+
 export default function NavBar() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // diabazoume ton xristi apo localStorage
   const [user, setUser] = useState(() => {
@@ -42,21 +42,25 @@ export default function NavBar() {
     navigate("/");
   };
 
-  // Both profile links open /profile?email=... with a different email.
-  // NavLink only looks at the path, so we work out the highlight ourselves.
-  const location = useLocation();
-  const onProfilePage = location.pathname === "/profile";
-  const viewedEmail = new URLSearchParams(location.search).get("email");
-  const viewed = viewedEmail?.toLowerCase();
-  const viewingGeorge = onProfilePage && viewed === GEORGE_EMAIL;
-  const viewingOwn =
-    onProfilePage && Boolean(user) && viewed === user.email.toLowerCase();
-  const cameFromGeorgeLink = Boolean(location.state?.viaGeorgeLink);
+  // The name shown in the header: the username, exactly as it was registered.
+  // (A login saved before usernames existed has none: then the email is shown.)
+  const username = user?.username;
 
-  // Logged in as George, both links open the same profile,
-  // so highlight the one that was actually clicked
-  const georgeProfileActive = viewingGeorge && (!viewingOwn || cameFromGeorgeLink);
-  const myProfileActive = viewingOwn && !(viewingGeorge && cameFromGeorgeLink);
+  // "My Profile" opens /profile?username=... (without a username: plain /profile)
+  const profilePath = username ? `/profile?username=${encodeURIComponent(username)}` : "/profile";
+
+  // NavLink only looks at the path, so we work out ourselves whether "My Profile" is open
+  const params = new URLSearchParams(location.search);
+  const viewedUsername = params.get("username");
+  const viewedEmail = params.get("email");
+  const myProfileActive =
+    location.pathname === "/profile" &&
+    Boolean(user) &&
+    (viewedUsername
+      ? sameText(viewedUsername, username)
+      : viewedEmail
+      ? sameText(viewedEmail, user.email)
+      : true);
 
   return (
     <nav
@@ -69,11 +73,16 @@ export default function NavBar() {
             Home
           </NavLink>
         </li>
+        <li>
+          <NavLink to="/browse" className={({ isActive }) => linkClass(isActive)}>
+            Browse
+          </NavLink>
+        </li>
         {/* Only when logged in: opens the profile page of the logged-in user */}
         {user && (
           <li>
             <Link
-              to={`/profile?email=${encodeURIComponent(user.email)}`}
+              to={profilePath}
               className={linkClass(myProfileActive)}
               aria-current={myProfileActive ? "page" : undefined}
             >
@@ -81,27 +90,18 @@ export default function NavBar() {
             </Link>
           </li>
         )}
-        {/* Exhibition link: shown to everyone, logged in or not (temporary).
-            The state passes the display name "George" for the profile. */}
-        <li>
-          <Link
-            to={`/profile?email=${encodeURIComponent(GEORGE_EMAIL)}`}
-            state={{ name: "George", viaGeorgeLink: true }}
-            className={linkClass(georgeProfileActive)}
-            aria-current={georgeProfileActive ? "page" : undefined}
-          >
-            George's Profile
-          </Link>
-        </li>
       </ul>
 
       <ul className="flex items-center gap-5">
         {user ? (
-          // sindedemenos: email + logout
+          // sindedemenos: username + logout
           <>
             <li>
-              <span className="block max-w-[200px] truncate text-[13px] text-email">
-                {user.email}
+              <span
+                className="block max-w-[200px] truncate text-[13px] text-email"
+                title={username ?? user.email}
+              >
+                {username ?? user.email}
               </span>
             </li>
             <li>

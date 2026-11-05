@@ -3,11 +3,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./App.css";
 import NavBar from "./components/NavBar";
 import HomePage from "./pages/HomePage";
+import BrowsePage from "./pages/BrowsePage";
 import ProfilePage from "./pages/ProfilePage";
 import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
 import MoviePage from "./pages/MoviePage";
 import ReviewPage from "./pages/ReviewPage";
+import WatchedMoviesPage from "./pages/WatchedMoviesPage";
 
 export default function App() {
   return (
@@ -16,11 +18,13 @@ export default function App() {
         <NavBar />
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/browse" element={<BrowsePage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/sign-in" element={<SignInPage />} />
           <Route path="/sign-up" element={<SignUpPage />} />
           <Route path="/movies/:id" element={<MoviePage />} />
           <Route path="/reviews" element={<ReviewPage />} />
+          <Route path="/watched" element={<WatchedMoviesPage />} />
         </Routes>
       </div>
     </BrowserRouter>

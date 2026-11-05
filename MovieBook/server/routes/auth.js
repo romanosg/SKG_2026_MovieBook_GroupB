@@ -6,6 +6,9 @@ const User = require('../models/User');
 
 const router = express.Router();
 
+// Usernames and emails are compared ignoring upper/lower case ("Anna" = "anna")
+const CASE_INSENSITIVE = { locale: 'en', strength: 2 };
+
 // Register
 router.post('/register', async (req, res) => {
   try {
@@ -51,7 +54,7 @@ router.post('/register', async (req, res) => {
         { email: normalizedEmail },
         { username: normalizedUsername },
       ],
-    });
+    }).collation(CASE_INSENSITIVE);
 
     if (existingUser) {
       if (existingUser.email === normalizedEmail) {
@@ -122,7 +125,7 @@ router.post('/login', async (req, res) => {
     const isEmail = raw.includes('@');
     const user = await User.findOne(
       isEmail ? { email: raw.toLowerCase() } : { username: raw }
-    );
+    ).collation(CASE_INSENSITIVE);
 
     if (!user) {
       return res.status(401).json({
