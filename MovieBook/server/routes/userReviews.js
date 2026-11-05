@@ -131,29 +131,28 @@ router.get('/check', authMiddleware, async (req, res) => {
 // Εμφάνιση μόνο δημόσιων κριτικών
 router.get('/public', async (req, res) => {
   try {
-
-	// gets emails based off 
-	const filter = { isPrivate: false };
+    const filter = { isPrivate: false };
 
     if (req.query.movie_id !== undefined) {
-    	if (!mongoose.isValidObjectId(req.query.movie_id)) {
-          return res.status(400).json({ message: 'Invalid movie_id' });
-        }
-        filter.movie_id = req.query.movie_id;
+      if (!mongoose.isValidObjectId(req.query.movie_id)) {
+        return res.status(400).json({ message: 'Invalid movie_id' });
+      }
+      filter.movie_id = req.query.movie_id;
     }
-	
-	if (typeof req.query.email === 'string' && req.query.email.trim()) {
-        const author = await User.findOne({
-          email: req.query.email.trim().toLowerCase(),
-        }).select('_id');
-        if (!author) return res.status(200).json([]);
-        filter.user_id = author._id;
+
+    // Filter by username instead of email
+    if (typeof req.query.username === 'string' && req.query.username.trim()) {
+      const author = await User.findOne({
+        username: new RegExp(`^${req.query.username.trim()}$`, 'i'),
+      }).select('_id');
+      if (!author) return res.status(200).json([]);
+      filter.user_id = author._id;
     }
 
     const reviews = await UserReview.find(filter)
-    .populate('user_id', 'username')
-    .populate('movie_id')
-    .sort({ reviewDate: -1 });
+      .populate('user_id', 'username')
+      .populate('movie_id')
+      .sort({ reviewDate: -1 });
 
     return res.status(200).json(reviews);
   } catch (error) {

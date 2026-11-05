@@ -139,20 +139,6 @@ export default function BrowsePage() {
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col items-center gap-3">
-          <form className="flex w-full max-w-[600px] gap-2" onSubmit={handleSubmit}>
-            <input
-              className="input h-11 min-w-0 flex-1"
-              type="search"
-              placeholder="Search movies..."
-              aria-label="Search movies"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <button className="btn h-11 shrink-0 px-5 py-0" type="submit">
-              Search
-            </button>
-          </form>
-
           <div className="w-full max-w-[600px]">
             <form className="flex gap-2" onSubmit={handleUserSearch}>
               <input
@@ -176,7 +162,19 @@ export default function BrowsePage() {
               </p>
             )}
           </div>
-
+          <form className="flex w-full max-w-[600px] gap-2" onSubmit={handleSubmit}>
+            <input
+              className="input h-11 min-w-0 flex-1"
+              type="search"
+              placeholder="Search movies..."
+              aria-label="Search movies"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <button className="btn h-11 shrink-0 px-5 py-0" type="submit">
+              Search
+            </button>
+          </form>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
             <SelectControl
               id="genre-select"
@@ -233,8 +231,9 @@ export default function BrowsePage() {
             const moviePath = `/movies/${slugify(movie.title) || movie._id}`;
             // the id travels with the click (not in the address) so the movie loads directly
             const linkState = { movieId: movie._id };
+
             return (
-              <li key={movie._id} className="w-(--poster-width) text-center">
+              <li key={movie._id} className="w-(--poster-width) text-center flex flex-col items-center">
                 <Link
                   to={moviePath}
                   state={linkState}

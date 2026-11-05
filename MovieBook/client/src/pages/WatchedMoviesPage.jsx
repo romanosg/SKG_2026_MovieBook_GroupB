@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import PageLayout from "../components/PageLayout";
 import Pager from "../components/Pager";
 import SelectControl from "../components/SelectControl";
-import StarRating from "../components/StarRating";
 import { useLoggedUser } from "../utils/useLoggedUser";
 import { slugify } from "../utils/slug";
 import { request } from "../utils/api";
@@ -17,8 +16,6 @@ const PAGES_BEFORE_CURRENT = 3;
 const PAGES_AFTER_CURRENT = 5;
 const PAGE_JUMP = 10;
 
-const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : "");
-
 // Shows the movies a user has watched: /watched?username=anna
 // Without a username in the address it shows the logged-in user's own list.
 export default function WatchedMoviesPage() {
@@ -26,6 +23,7 @@ export default function WatchedMoviesPage() {
   const loggedUser = useLoggedUser();
 
   const [sortBy, setSortBy] = useState(WATCHED_SORT_OPTIONS[0].value); // recently added unless changed
+  const [genre, setGenre] = useState(""); // "" means all genres
   const [page, setPage] = useState(1);
 
   const [watched, setWatched] = useState([]);
@@ -84,8 +82,25 @@ export default function WatchedMoviesPage() {
     );
   }
 
-  // The movies in the chosen order, and only those of the current page
-  const sorted = sortWatched(watched, sortBy);
+  // Every genre that exists in the user's watched list, for the dropdown
+  const availableGenres = [
+    ...new Set(
+      watched.flatMap((item) => item.movie_id?.genre || [])
+    ),
+  ].sort();
+
+  const genreOptions = [
+    { value: "", label: "All" },
+    ...availableGenres.map((g) => ({ value: g, label: g })),
+  ];
+
+  // Filter by the chosen genre, then sort
+  const filteredWatched = watched.filter((item) => {
+    if (!genre) return true;
+    return item.movie_id?.genre?.includes(genre);
+  });
+
+  const sorted = sortWatched(filteredWatched, sortBy);
   const totalPages = Math.ceil(sorted.length / WATCHED_PER_PAGE);
   const currentPage = Math.min(page, Math.max(1, totalPages));
   const firstIndex = (currentPage - 1) * WATCHED_PER_PAGE;
@@ -98,6 +113,16 @@ export default function WatchedMoviesPage() {
       <h1 className="mb-5 text-[32px] font-bold [overflow-wrap:anywhere]">{heading}</h1>
 
       <div className="flex flex-wrap items-center justify-center gap-5">
+        <SelectControl
+          id="watched-genre"
+          label="Genre"
+          value={genre}
+          onChange={(value) => {
+            setGenre(value);
+            setPage(1);
+          }}
+          options={genreOptions}
+        />
         <SelectControl
           id="watched-sort"
           label="Sort by"
@@ -119,58 +144,50 @@ export default function WatchedMoviesPage() {
             {sorted.length} {sorted.length === 1 ? "movie" : "movies"}
           </p>
 
-          {sorted.length === 0 && <p className="mt-4 text-muted">No watched movies yet.</p>}
+          {sorted.length === 0 && <p className="mt-4 text-muted">No watched movies match your selection.</p>}
 
           {sorted.length > 0 && (
-            <ul className="mt-4 flex flex-col gap-4 p-0">
+            <ul className="mt-4 grid grid-cols-[repeat(auto-fill,var(--poster-width))] items-start justify-center gap-6 p-0">
               {pageItems.map((item) => {
                 const movie = item.movie_id; // the movie (null if it was deleted)
+                const moviePath = movie?._id ? `/movies/${slugify(movie.title) || movie._id}` : "#";
+                const linkState = movie?._id ? { movieId: movie._id } : undefined;
+
                 return (
-                  <li
-                    key={item._id}
-                    className="flex gap-4 rounded-[10px] border border-line bg-surface p-4"
-                  >
-                    {movie?.poster_url ? (
-                      <img
-                        src={movie.poster_url}
-                        alt=""
-                        className="aspect-[2/3] w-14 shrink-0 rounded-md bg-field object-cover"
-                      />
+                  <li key={item._id} className="w-(--poster-width) text-center flex flex-col items-center">
+                    {movie?._id ? (
+                      <Link to={moviePath} state={linkState} className="block w-(--poster-width) cursor-pointer">
+                        {movie.poster_url ? (
+                          <img
+                            src={movie.poster_url}
+                            alt=""
+                            className="block h-auto w-(--poster-width) rounded-lg bg-surface"
+                          />
+                        ) : (
+                          <div className="flex aspect-[2/3] w-(--poster-width) items-center justify-center rounded-lg bg-surface text-sm text-muted">
+                            No image
+                          </div>
+                        )}
+                      </Link>
                     ) : (
-                      <div className="aspect-[2/3] w-14 shrink-0 rounded-md bg-field" />
+                      <div className="flex aspect-[2/3] w-(--poster-width) items-center justify-center rounded-lg bg-surface text-sm text-muted">
+                        No image
+                      </div>
                     )}
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                        {movie?._id ? (
-                          <Link
-                            to={`/movies/${slugify(movie.title) || movie._id}`}
-                            state={{ movieId: movie._id }}
-                            className="text-lg font-bold hover:underline"
-                          >
-                            {movie.title}
-                          </Link>
-                        ) : (
-                          <span className="text-lg font-bold text-muted">Unknown movie</span>
-                        )}
-                        <span className="text-xs text-muted">
-                          Added {formatDate(item.createdAt ?? item.watchedAt)}
-                        </span>
-                      </div>
-
-                      {movie?.year && <p className="text-sm text-muted">{movie.year}</p>}
-
-                      <div className="mt-1 flex items-center gap-2">
-                        <StarRating rating={item.rating} size={20} />
-                        <span className="text-sm text-muted">{item.rating} / 5</span>
-                      </div>
-
-                      {item.review && (
-                        <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">
-                          {item.review}
-                        </p>
+                    <p className="mt-2 text-base font-bold [overflow-wrap:anywhere]">
+                      {movie?._id ? (
+                        <Link 
+                          to={moviePath} 
+                          state={linkState} 
+                          className="cursor-pointer hover:underline"
+                        >
+                          {movie.title}
+                        </Link>
+                      ) : (
+                        <span className="text-muted">Unknown movie</span>
                       )}
-                    </div>
+                    </p>
                   </li>
                 );
               })}

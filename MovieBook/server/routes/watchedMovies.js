@@ -1,4 +1,3 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const WatchedMovie = require('../models/WatchedMovie');
@@ -13,7 +12,7 @@ const router = express.Router();
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { movie_id, rating, review, watchedAt } = req.body;
-const user_id = req.user.userId;
+    const user_id = req.user.userId;
 
     if (!mongoose.isValidObjectId(user_id)) {
       return res.status(400).json({ message: 'Invalid user_id' });
@@ -24,12 +23,10 @@ const user_id = req.user.userId;
     }
 
     if (
-      rating === undefined ||
-      rating === null ||
-      rating === '' ||
-      !Number.isInteger(Number(rating)) ||
-      Number(rating) < 1 ||
-      Number(rating) > 5
+      rating !== undefined &&
+      rating !== null &&
+      rating !== '' &&
+      (!Number.isInteger(Number(rating)) || Number(rating) < 1 || Number(rating) > 5)
     ) {
       return res.status(400).json({
         message: 'Rating must be an integer between 1 and 5',
@@ -56,10 +53,17 @@ const user_id = req.user.userId;
       return res.status(404).json({ message: 'Movie not found' });
     }
 
+    const existingEntry = await WatchedMovie.findOne({ user_id, movie_id });
+    if (existingEntry) {
+      return res.status(200).json(existingEntry);
+    }
+
     const watchedMovie = await WatchedMovie.create({
       user_id,
       movie_id,
-      rating: Number(rating),
+      ...(rating !== undefined && rating !== null && rating !== ''
+        ? { rating: Number(rating) }
+        : {}),
       review: review || '',
       ...(watchedAt ? { watchedAt } : {}),
     });
@@ -71,6 +75,28 @@ const user_id = req.user.userId;
     }
 
     console.error('Create watched movie error:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/watched-movies/username/:username
+// Λήψη όλων των καταχωρίσεων ενός χρήστη βάσει username
+router.get('/username/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    const user = await User.findOne({ username: new RegExp(`^${username}$`, 'i') });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const watchedMovies = await WatchedMovie.find({ user_id: user._id })
+      .populate('movie_id')
+      .sort({ watchedAt: -1 });
+
+    return res.status(200).json(watchedMovies);
+  } catch (error) {
+    console.error('Get watched movies by username error:', error);
     return res.status(500).json({ message: 'Server error' });
   }
 });

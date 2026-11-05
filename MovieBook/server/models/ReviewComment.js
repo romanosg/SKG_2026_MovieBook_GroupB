@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 
 const reviewCommentSchema = new mongoose.Schema(
   {
-    watched_movie_id: {
+    review_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'WatchedMovie',
+      ref: 'UserReview',
       required: true,
     },
 

@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import StarRating from "./StarRating";
 import StarPicker from "./StarPicker";
 import { request } from "../utils/api";
 import { authorId, groupAndSort } from "../utils/movieReviews";
 
-const TEXT_MAX_LENGTH = 2000; // the server refuses a longer review
+const TEXT_MAX_LENGTH = 2000;
 
 const SORT_OPTIONS = [
   { value: "recency", label: "Recency" },
@@ -17,7 +17,6 @@ const ORDER_OPTIONS = [
   { value: "asc", label: "Ascending" },
 ];
 
-// A label with a dropdown, in the same style as the other filters of the site
 function Control({ id, label, value, onChange, options }) {
   return (
     <div className="flex items-center gap-2.5">
@@ -35,20 +34,237 @@ function Control({ id, label, value, onChange, options }) {
   );
 }
 
-// One review. The user's own reviews also get Edit and Delete, and say if they are public or private.
-function ReviewCard({ review, isOwn, onChanged }) {
-  const [mode, setMode] = useState("view"); // "view" | "edit" | "confirm" (asking before deleting)
+function CommentItem({ comment, ownId, onCommentChanged }) {
+  const [mode, setMode] = useState("view");
+  const [text, setText] = useState(comment.comment);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const commentAuthorId = comment.commenter_id?._id || comment.commenter_id;
+  const isOwnComment = ownId !== null && String(commentAuthorId) === String(ownId);
+  const commenterName = comment.commenter_id?.username || comment.commenter_id?.email || "User";
+  const commentDate = new Date(comment.createdAt).toLocaleDateString("el-GR");
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!text.trim()) return;
+
+    setBusy(true);
+    setError("");
+    try {
+      await request(`/api/review-comments/${comment._id}`, {
+        method: "PUT",
+        auth: true,
+        body: { comment: text.trim() },
+      });
+      setMode("view");
+      onCommentChanged?.();
+    } catch (err) {
+      setError(err.message || "Failed to update reply.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await request(`/api/review-comments/${comment._id}`, {
+        method: "DELETE",
+        auth: true,
+      });
+      onCommentChanged?.();
+    } catch (err) {
+      setError(err.message || "Failed to delete reply.");
+      setMode("view");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className={`rounded-[10px] border px-4 py-3 text-sm ${
+        isOwnComment
+          ? "border-line border-l-[3px] border-l-brand bg-surface-light"
+          : "border-line bg-surface"
+      }`}
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {isOwnComment ? (
+          <span className="text-sm font-semibold">You</span>
+        ) : commenterName ? (
+          <Link
+            to={`/profile?username=${encodeURIComponent(commenterName)}`}
+            className="text-sm font-semibold hover:underline"
+          >
+            {commenterName}
+          </Link>
+        ) : (
+          <span className="text-sm font-semibold text-muted">Unknown user</span>
+        )}
+        <div className="ml-auto flex items-center gap-2 text-xs text-muted">
+          {(comment.isEdited || comment.updatedAt !== comment.createdAt) && (
+            <span className="italic">(edited)</span>
+          )}
+          <span>{commentDate}</span>
+        </div>
+      </div>
+
+      {mode === "view" && (
+        <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">{comment.comment}</p>
+      )}
+
+      {isOwnComment && mode === "view" && (
+        <div className="mt-2 flex justify-end gap-3 text-xs">
+          <button
+            type="button"
+            className="cursor-pointer text-brand hover:underline"
+            onClick={() => {
+              setText(comment.comment);
+              setError("");
+              setMode("edit");
+            }}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            className="cursor-pointer text-danger hover:underline"
+            onClick={() => {
+              setError("");
+              setMode("confirm");
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+
+      {isOwnComment && mode === "confirm" && (
+        <div className="mt-2 flex items-center justify-end gap-2 text-xs">
+          <span>Delete reply?</span>
+          <button
+            type="button"
+            className="btn btn-danger px-2.5 py-0.5"
+            disabled={busy}
+            onClick={handleDelete}
+          >
+            Yes
+          </button>
+          <button
+            type="button"
+            className="btn px-2.5 py-0.5"
+            disabled={busy}
+            onClick={() => setMode("view")}
+          >
+            No
+          </button>
+        </div>
+      )}
+
+      {isOwnComment && mode === "edit" && (
+        <form className="mt-2 flex flex-col gap-2" onSubmit={handleSaveEdit}>
+          <textarea
+            className="input block min-h-[60px] w-full resize-y text-xs"
+            maxLength={1000}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <div className="flex items-center gap-3">
+            <button type="submit" className="btn px-3 py-1 text-xs" disabled={busy}>
+              {busy ? "Saving..." : "Save"}
+            </button>
+            <button
+              type="button"
+              className="cursor-pointer text-xs text-muted hover:underline"
+              disabled={busy}
+              onClick={() => setMode("view")}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {error && <p className="error mt-1 text-xs">{error}</p>}
+    </div>
+  );
+}
+
+function ReviewCard({ review, isOwn, ownId, onChanged }) {
+  const [mode, setMode] = useState("view");
   const [text, setText] = useState(review.text);
   const [rating, setRating] = useState(review.rating);
   const [isPrivate, setIsPrivate] = useState(review.isPrivate);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const [comments, setComments] = useState([]);
+  const [showReplies, setShowReplies] = useState(false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [submittingReply, setSubmittingReply] = useState(false);
+  const [replyError, setReplyError] = useState("");
+
   const author = review.user_id?.username;
   const date = new Date(review.reviewDate).toLocaleDateString("el-GR");
+  const isPublic = !review.isPrivate;
+  const reviewId = review._id;
 
   const messageFor = (err, fallback) =>
     err.status === 401 ? "Your session expired. Please sign in again." : err.message || fallback;
+
+  useEffect(() => {
+    if (!reviewId || !isPublic) return;
+    let cancelled = false;
+
+    request(`/api/review-comments/review/${reviewId}`)
+      .then((comms) => {
+        if (cancelled) return;
+        setComments(comms.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)));
+      })
+      .catch((err) => {
+        console.error("Failed to load comments:", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reviewId, isPublic]);
+
+  const fetchComments = async () => {
+    try {
+      const comms = await request(`/api/review-comments/review/${reviewId}`);
+      setComments(comms.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)));
+    } catch (err) {
+      console.error("Failed to fetch comments:", err);
+    }
+  };
+
+  const handleReplySubmit = async (e) => {
+    e.preventDefault();
+    if (!replyText.trim()) return;
+
+    setSubmittingReply(true);
+    setReplyError("");
+    try {
+      await request(`/api/review-comments/review/${reviewId}`, {
+        method: "POST",
+        auth: true,
+        body: { comment: replyText.trim() },
+      });
+      setReplyText("");
+      setIsPopupOpen(false);
+      setShowReplies(true);
+      await fetchComments();
+    } catch (err) {
+      setReplyError(messageFor(err, "Failed to post reply."));
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
 
   const startEdit = () => {
     setText(review.text);
@@ -79,9 +295,8 @@ function ReviewCard({ review, isOwn, onChanged }) {
         body: { text: text.trim(), rating, isPrivate },
       });
       setMode("view");
-      onChanged?.(); // reload the reviews
+      onChanged?.();
     } catch (err) {
-      // e.g. 409: a review of the other type (public / private) already exists
       setError(messageFor(err, "Could not save the review."));
     } finally {
       setBusy(false);
@@ -93,7 +308,7 @@ function ReviewCard({ review, isOwn, onChanged }) {
     setBusy(true);
     try {
       await request(`/api/user-reviews/${review._id}`, { method: "DELETE", auth: true });
-      onChanged?.(); // reload the reviews
+      onChanged?.();
     } catch (err) {
       setError(messageFor(err, "Could not delete the review."));
       setMode("view");
@@ -101,6 +316,10 @@ function ReviewCard({ review, isOwn, onChanged }) {
       setBusy(false);
     }
   };
+
+  const isEdited =
+    Boolean(review.isEdited) ||
+    (review.updatedAt && review.createdAt && new Date(review.updatedAt).getTime() - new Date(review.createdAt).getTime() > 1000);
 
   return (
     <li
@@ -127,14 +346,17 @@ function ReviewCard({ review, isOwn, onChanged }) {
         {isOwn && (
           <span
             className={`rounded-full border px-2.5 py-px text-xs ${
-              review.isPrivate ? "border-line text-muted" : "border-brand text-brand"
+              review.isPrivate ? "border-success text-success" : "border-brand text-brand"
             }`}
           >
-            {review.isPrivate ? "Private" : "Public"}
+            {review.isPrivate ? "Personal" : "Public"}
           </span>
         )}
 
-        <span className="ml-auto text-xs text-muted">{date}</span>
+        <div className="ml-auto flex items-center gap-2 text-xs text-muted">
+          {isEdited && <span className="italic">(edited)</span>}
+          <span>{date}</span>
+        </div>
       </div>
 
       {mode !== "edit" && (
@@ -149,21 +371,53 @@ function ReviewCard({ review, isOwn, onChanged }) {
         </>
       )}
 
-      {isOwn && mode === "view" && (
-        <div className="mt-3 flex justify-end gap-4 text-sm">
-          <button type="button" className="cursor-pointer text-brand hover:underline" onClick={startEdit}>
-            Edit
-          </button>
-          <button
-            type="button"
-            className="cursor-pointer text-danger hover:underline"
-            onClick={() => {
-              setError("");
-              setMode("confirm");
-            }}
-          >
-            Delete
-          </button>
+      {mode === "view" && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+          <div>
+            {isPublic && comments.length > 0 && (
+              <button
+                type="button"
+                className="cursor-pointer font-medium text-brand hover:underline rounded-md bg-brand/10 px-3 py-1 text-xs border border-brand/40 transition-colors"
+                onClick={() => setShowReplies(!showReplies)}
+              >
+                {showReplies ? "Hide replies" : `Show all replies (${comments.length})`}
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4 ml-auto">
+            {isPublic && (
+              <button
+                type="button"
+                className="cursor-pointer text-brand hover:underline font-semibold"
+                onClick={() => {
+                  setReplyText("");
+                  setReplyError("");
+                  setIsPopupOpen(true);
+                }}
+              >
+                Reply
+              </button>
+            )}
+
+            {isOwn && (
+              <>
+                <button type="button" className="cursor-pointer text-brand hover:underline" onClick={startEdit}>
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="cursor-pointer text-danger hover:underline"
+                  onClick={() => {
+                    setError("");
+                    setMode("confirm");
+                  }}
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -224,19 +478,73 @@ function ReviewCard({ review, isOwn, onChanged }) {
       )}
 
       {error && <p className="error mt-2">{error}</p>}
+
+      {/* Tabbed Replies Section */}
+      {isPublic && showReplies && comments.length > 0 && (
+        <div className="mt-3 ml-6 flex flex-col gap-3 border-l-2 border-brand/20 pl-4">
+          {comments.map((comment) => (
+            <CommentItem
+              key={comment._id}
+              comment={comment}
+              ownId={ownId}
+              onCommentChanged={fetchComments}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Reply Popup Modal */}
+      {isPopupOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-[14px] border border-line bg-surface p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Reply to {author || "review"}</h3>
+              <button
+                type="button"
+                onClick={() => setIsPopupOpen(false)}
+                className="text-muted hover:text-foreground text-xl font-bold cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            {replyError && <p className="mb-3 text-sm text-danger-text">{replyError}</p>}
+
+            <form onSubmit={handleReplySubmit} className="flex flex-col gap-4">
+              <textarea
+                className="input block min-h-[100px] w-full resize-y leading-normal"
+                placeholder="Write your reply..."
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                maxLength={1000}
+                required
+              />
+              <div className="flex items-center justify-between text-xs text-muted">
+                <span>{replyText.length}/1000 characters</span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsPopupOpen(false)}
+                    className="btn bg-transparent border border-line text-muted px-4 py-2"
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn px-5 py-2" disabled={submittingReply}>
+                    {submittingReply ? "Posting..." : "Post Reply"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </li>
   );
 }
 
-// All the public reviews of a movie. A logged-in user's own reviews (public and private) come first.
-//
-//   reviews:    the reviews as the server sends them (public ones, plus the user's private ones)
-//   loggedUser: the logged-in user, or null
-//   loading:    true until the reviews have been loaded
-//   onChanged:  called after a review was edited or deleted (reload the reviews)
 export default function ReviewList({ reviews, loggedUser, loading = false, onChanged }) {
-  const [sortBy, setSortBy] = useState("recency"); // recency | rating
-  const [order, setOrder] = useState("desc"); // desc | asc
+  const [sortBy, setSortBy] = useState("recency");
+  const [order, setOrder] = useState("desc");
 
   const ownId = loggedUser ? String(loggedUser.id ?? loggedUser._id) : null;
   const { mine, others } = groupAndSort(reviews, ownId, sortBy, order);
@@ -277,6 +585,7 @@ export default function ReviewList({ reviews, loggedUser, loading = false, onCha
                 key={review._id}
                 review={review}
                 isOwn={ownId !== null && authorId(review) === ownId}
+                ownId={ownId}
                 onChanged={onChanged}
               />
             ))}

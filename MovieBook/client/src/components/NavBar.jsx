@@ -43,24 +43,28 @@ export default function NavBar() {
   };
 
   // The name shown in the header: the username, exactly as it was registered.
-  // (A login saved before usernames existed has none: then the email is shown.)
   const username = user?.username;
 
-  // "My Profile" opens /profile?username=... (without a username: plain /profile)
-  const profilePath = username ? `/profile?username=${encodeURIComponent(username)}` : "/profile";
+  // Always parse ?username= if the username exists, otherwise fallback to base path
+  const queryParam = username ? `?username=${encodeURIComponent(username)}` : "";
+  const profilePath = `/profile${queryParam}`;
+  const reviewsPath = `/reviews${queryParam}`;
+  const watchedPath = `/watched${queryParam}`;
 
-  // NavLink only looks at the path, so we work out ourselves whether "My Profile" is open
+  // Check active states based on URL query parameters or matching paths
   const params = new URLSearchParams(location.search);
   const viewedUsername = params.get("username");
   const viewedEmail = params.get("email");
-  const myProfileActive =
-    location.pathname === "/profile" &&
-    Boolean(user) &&
-    (viewedUsername
-      ? sameText(viewedUsername, username)
-      : viewedEmail
-      ? sameText(viewedEmail, user.email)
-      : true);
+
+  const isUserMatch = (viewedUsername
+    ? sameText(viewedUsername, username)
+    : viewedEmail
+    ? sameText(viewedEmail, user?.email)
+    : true);
+
+  const myProfileActive = location.pathname === "/profile" && Boolean(user) && isUserMatch;
+  const myReviewsActive = location.pathname === "/reviews" && Boolean(user) && isUserMatch;
+  const myWatchedActive = location.pathname === "/watched" && Boolean(user) && isUserMatch;
 
   return (
     <nav
@@ -78,17 +82,37 @@ export default function NavBar() {
             Browse
           </NavLink>
         </li>
-        {/* Only when logged in: opens the profile page of the logged-in user */}
+        {/* Only when logged in: Profile, Reviews, and Watched Movies links with username query parameter */}
         {user && (
-          <li>
-            <Link
-              to={profilePath}
-              className={linkClass(myProfileActive)}
-              aria-current={myProfileActive ? "page" : undefined}
-            >
-              My Profile
-            </Link>
-          </li>
+          <>
+            <li>
+              <Link
+                to={profilePath}
+                className={linkClass(myProfileActive)}
+                aria-current={myProfileActive ? "page" : undefined}
+              >
+                My Profile
+              </Link>
+            </li>
+            <li>
+              <Link
+                to={reviewsPath}
+                className={linkClass(myReviewsActive)}
+                aria-current={myReviewsActive ? "page" : undefined}
+              >
+                My Reviews
+              </Link>
+            </li>
+            <li>
+              <Link
+                to={watchedPath}
+                className={linkClass(myWatchedActive)}
+                aria-current={myWatchedActive ? "page" : undefined}
+              >
+                My Watched Movies
+              </Link>
+            </li>
+          </>
         )}
       </ul>
 

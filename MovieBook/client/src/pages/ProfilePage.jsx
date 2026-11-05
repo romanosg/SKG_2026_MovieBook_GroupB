@@ -43,7 +43,7 @@ export default function ProfilePage() {
     Boolean(a) && Boolean(b) && a.trim().toLowerCase() === b.trim().toLowerCase();
   const isOwner = usernameParam
     ? Boolean(loggedUser?.username) &&
-      loggedUser.username.toLowerCase() === usernameParam.toLowerCase() // same user, whatever the case
+      loggedUser.username.toLowerCase() === usernameParam.toLowerCase()
     : sameEmail(loggedUser?.email, profileEmail);
 
   // The viewed profile, from the server. status: "loading" | "found" | "notfound" | "error"
@@ -66,8 +66,6 @@ export default function ProfilePage() {
 
     const loadProfile = async () => {
       try {
-        // The owner gets everything about themselves (even what is hidden from others).
-        // Everyone else gets the public version, without what the owner chose to hide.
         const data = isOwner
           ? await request("/api/user/profile", { auth: true })
           : await request(
@@ -81,9 +79,9 @@ export default function ProfilePage() {
       } catch (err) {
         if (cancelled) return;
         if (isOwner && err.status === 401) {
-          expireSession(); // this reloads the page as a visitor
+          expireSession();
         } else if (err.status === 404 && err.hasMessage) {
-          setStatus("notfound"); // no user has this email
+          setStatus("notfound");
         } else {
           console.error("Could not load the profile:", err);
           setStatus("error");
@@ -97,12 +95,8 @@ export default function ProfilePage() {
     };
   }, [profileKey, usernameParam, isOwner]);
 
-  // The owner can edit once their data has loaded (the buttons act on that data)
   const canEdit = isOwner && status === "found";
 
-  // ---- what the buttons on the profile do ----
-
-  // Saves some profile fields, e.g. { aboutMe: "..." } or { hideAge: true }
   const saveProfile = async (fields) => {
     try {
       await request("/api/user/profile", { method: "PUT", auth: true, body: fields });
@@ -119,7 +113,6 @@ export default function ProfilePage() {
   const handleSaveAbout = (aboutMe) => saveProfile({ aboutMe });
   const handleChangeHide = (field, value) => saveProfile({ [field]: value });
 
-  // Deletes the account, then logs out and goes to the homepage
   const handleDeleteAccount = async () => {
     try {
       await request("/api/user/account", { method: "DELETE", auth: true });
@@ -134,8 +127,6 @@ export default function ProfilePage() {
     navigate("/");
   };
 
-  // The two buttons under About me open the reviews / watched movies of the profile being viewed.
-  // They are for everybody (not only the owner) and find the user by username.
   const openList = (path) => {
     if (profile?.username) navigate(`/${path}?username=${encodeURIComponent(profile.username)}`);
   };
@@ -152,7 +143,6 @@ export default function ProfilePage() {
     </p>
   );
 
-  // No email in the address and nobody logged in
   if (!profileKey) {
     return (
       <PageLayout page="profile">
@@ -162,10 +152,8 @@ export default function ProfilePage() {
     );
   }
 
-  // What to show in each situation. The server leaves out what a user chose to hide,
-  // so a missing email / age / About me means "hidden".
   let email = "Loading...";
-  let age = null; // null hides the Age line
+  let age = null;
   if (status === "found") {
     email = profile.email ?? "Hidden";
     age = profile.age ?? "Hidden";
@@ -178,12 +166,10 @@ export default function ProfilePage() {
   }
   const found = status === "found";
 
-  // The heading, and whether the two buttons can be shown (they need the username)
-  const title = profile?.username ? `${profile.username}'s Profile` : "User's Profile";
+  // Requirement: "My Profile" if viewing own profile, otherwise "[username]'s Profile"
+  const title = isOwner ? "My Profile" : profile?.username ? `${profile.username}'s Profile` : "User's Profile";
   const listsEnabled = found && Boolean(profile?.username);
 
-  // The photo's letter: the username, else a name passed by the link we came from,
-  // else the start of the email
   const name =
     profile?.username || usernameParam || location.state?.name || (profileEmail ?? "").split("@")[0];
 
@@ -191,7 +177,6 @@ export default function ProfilePage() {
     <PageLayout page="profile" className="flex">
       <div className="flex min-w-0 flex-1 flex-col">
         {sessionBanner}
-        {/* key: a new profile, or the data arriving, starts the card fresh */}
         <Profile
           key={`${profileKey}-${status}`}
           name={name}
@@ -211,6 +196,7 @@ export default function ProfilePage() {
           onDeleteAccount={handleDeleteAccount}
           onSeeReviews={listsEnabled ? handleSeeReviews : undefined}
           onSeeWatched={listsEnabled ? handleSeeWatched : undefined}
+          isOwner={isOwner}
         />
       </div>
     </PageLayout>

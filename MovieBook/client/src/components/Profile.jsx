@@ -1,19 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import { resizeImage } from "../utils/image";
 
-// Shared look of the profile photo circle
 const AVATAR_CLASS =
   "flex size-18 shrink-0 items-center justify-center overflow-hidden rounded-full bg-avatar p-0 text-[28px] text-strong";
 
-// "Hide email" / "Hide age" / "Hide about me": text first, then the checkbox
 const CHECK_LABEL_CLASS =
   "inline-flex shrink-0 cursor-pointer items-center gap-1.5 text-[13px] text-soft";
 const CHECKBOX_CLASS = "m-0 size-[26px] cursor-pointer accent-brand";
 
 const MAX_SIZE_MB = 5;
-const ABOUT_MAX_LENGTH = 500; // the server refuses a longer About me
+const ABOUT_MAX_LENGTH = 500;
 
-// A small message: saving..., saved, or an error. status = { kind: "saving" | "ok" | "error", text }
 function StatusText({ status }) {
   if (!status) return null;
   const color =
@@ -27,46 +24,43 @@ function StatusText({ status }) {
 
 export default function Profile({
   name = "Original",
+  title = "User's Profile",
   email = "originalemail@gmail.com",
   age = null,
-  photo: initialPhoto = "", // the saved profile photo (a web address or a data URL)
-  about: initialAbout = "", // the saved About me text
-  aboutHidden = false, // for visitors: the owner keeps About me private
-  hideEmail = false, // the owner's privacy settings, as saved on the server
+  photo: initialPhoto = "",
+  about: initialAbout = "",
+  aboutHidden = false,
+  hideEmail = false,
   hideAge = false,
   hideAboutMe = false,
-  canEdit = false, // true only for the profile's owner, once their data has loaded
-  // The next four are async: they resolve when saved, and throw an Error (with a message) if not
-  onSavePhoto, // (photo) => Promise
-  onSaveAbout, // (text) => Promise
-  onChangeHide, // (field, value) => Promise   field: "hideEmail" | "hideAge" | "hideAboutMe"
-  onDeleteAccount, // () => Promise
-  onSeeReviews, // optional: called when "Go See My Reviews" is clicked
+  canEdit = false,
+  onSavePhoto,
+  onSaveAbout,
+  onChangeHide,
+  onDeleteAccount,
+  onSeeReviews,
+  onSeeWatched,
+  isOwner = false,
 }) {
-  // Photo: what is shown now, and what is saved on the server
   const [photo, setPhoto] = useState(initialPhoto);
   const [savedPhoto, setSavedPhoto] = useState(initialPhoto);
   const [photoStatus, setPhotoStatus] = useState(null);
   const [fileError, setFileError] = useState("");
   const inputRef = useRef(null);
 
-  // About me: what is typed now, and what is saved on the server
   const [about, setAbout] = useState(initialAbout);
   const [savedAbout, setSavedAbout] = useState(initialAbout);
   const [aboutStatus, setAboutStatus] = useState(null);
   const aboutRef = useRef(null);
 
-  // The three "Hide ..." checkboxes
   const [hide, setHide] = useState({ hideEmail, hideAge, hideAboutMe });
   const [hideError, setHideError] = useState("");
 
-  // Delete account popup
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const noButtonRef = useRef(null);
 
-  // Grow the About me box to fit its text (never smaller than its minimum height)
   const fitAbout = () => {
     const el = aboutRef.current;
     if (!el) return;
@@ -75,16 +69,15 @@ export default function Profile({
     el.style.height = `${el.scrollHeight + borders}px`;
   };
 
-  useEffect(fitAbout, [about, canEdit]); // whenever the text changes
+  useEffect(fitAbout, [about, canEdit]);
   useEffect(() => {
-    // text wraps differently when the window width changes
     window.addEventListener("resize", fitAbout);
     return () => window.removeEventListener("resize", fitAbout);
   }, []);
 
   useEffect(() => {
     if (!confirmOpen) return;
-    noButtonRef.current?.focus(); // "No" is focused first: the safe choice
+    noButtonRef.current?.focus();
     const handleKey = (e) => {
       if (e.key === "Escape" && !deleting) setConfirmOpen(false);
     };
@@ -94,10 +87,9 @@ export default function Profile({
 
   const initial = name.trim().charAt(0).toUpperCase();
 
-  // ---- photo ----
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
-    e.target.value = ""; // so the same file can be chosen again later
+    e.target.value = "";
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
@@ -111,7 +103,7 @@ export default function Profile({
 
     setFileError("");
     try {
-      setPhoto(await resizeImage(file)); // shown right away, saved when "Save photo" is pressed
+      setPhoto(await resizeImage(file));
       setPhotoStatus(null);
     } catch (err) {
       setFileError(err.message);
@@ -129,14 +121,11 @@ export default function Profile({
     }
   };
 
-  // ---- about me ----
   const updateAbout = (value) => {
     setAbout(value);
     setAboutStatus(null);
   };
 
-  // Enter already makes a new line in a textarea.
-  // Tab normally moves focus away, so insert a tab character instead.
   const handleAboutKeyDown = (e) => {
     if (e.key !== "Tab") return;
     e.preventDefault();
@@ -144,7 +133,6 @@ export default function Profile({
     const { selectionStart, selectionEnd, value } = el;
     if (value.length - (selectionEnd - selectionStart) + 1 > ABOUT_MAX_LENGTH) return;
     updateAbout(value.slice(0, selectionStart) + "\t" + value.slice(selectionEnd));
-    // put the cursor right after the inserted tab
     requestAnimationFrame(() => {
       el.selectionStart = el.selectionEnd = selectionStart + 1;
     });
@@ -161,24 +149,22 @@ export default function Profile({
     }
   };
 
-  // ---- "Hide ..." checkboxes ----
   const handleHideChange = async (field, checked) => {
-    setHide((previous) => ({ ...previous, [field]: checked })); // shown right away
+    setHide((previous) => ({ ...previous, [field]: checked }));
     setHideError("");
     try {
       await onChangeHide?.(field, checked);
     } catch (err) {
-      setHide((previous) => ({ ...previous, [field]: !checked })); // put it back
+      setHide((previous) => ({ ...previous, [field]: !checked }));
       setHideError(err.message || "Could not save this setting.");
     }
   };
 
-  // ---- delete account ----
   const handleConfirmDelete = async () => {
     setDeleting(true);
     setDeleteError("");
     try {
-      await onDeleteAccount?.(); // on success the page logs the user out and leaves
+      await onDeleteAccount?.();
       setConfirmOpen(false);
     } catch (err) {
       setDeleteError(err.message || "Could not delete the account.");
@@ -191,7 +177,6 @@ export default function Profile({
     if (!deleting) setConfirmOpen(false);
   };
 
-  // The photo, or the first letter of the name
   const avatarContent = photo ? (
     <img src={photo} alt={`${name}'s photo`} className="size-full object-cover" />
   ) : (
@@ -201,8 +186,7 @@ export default function Profile({
   return (
     <section className="w-full flex-1 border-l-[3px] border-line bg-surface px-6 py-5 text-left text-sm leading-normal text-main">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="m-0 text-xl font-semibold">User's Profile</h2>
-        {/* Only for the profile's owner */}
+        <h2 className="m-0 text-xl font-semibold">{title}</h2>
         {canEdit && (
           <button
             type="button"
@@ -287,7 +271,7 @@ export default function Profile({
           </label>
         )}
       </div>
-      {/* ilikia mono an exoume timi */}
+
       {age !== null && (
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="m-0">
@@ -311,7 +295,6 @@ export default function Profile({
 
       <h3 className="mt-6 mb-2 text-base font-bold">About me</h3>
 
-      {/* canEdit=true: textarea, canEdit=false: read-only box */}
       {canEdit ? (
         <>
           <textarea
@@ -360,14 +343,19 @@ export default function Profile({
         </div>
       )}
 
-      {/* Only for the profile's owner */}
-      {canEdit && (
-        <div className="mt-6">
-          <button type="button" className="btn py-1.5" onClick={() => onSeeReviews?.()}>
-            Go See My Reviews
+      {/* Action Buttons for Reviews and Watched Movies */}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        {onSeeReviews && (
+          <button type="button" className="btn py-1.5 px-4" onClick={onSeeReviews}>
+            {isOwner ? "Go See My Reviews" : `Go See ${name}'s Reviews`}
           </button>
-        </div>
-      )}
+        )}
+        {onSeeWatched && (
+          <button type="button" className="btn py-1.5 px-4" onClick={onSeeWatched}>
+            {isOwner ? "Go See My Watched Movies" : `Go See ${name}'s Watched Movies`}
+          </button>
+        )}
+      </div>
 
       {confirmOpen && (
         <div
