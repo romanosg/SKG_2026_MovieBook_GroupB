@@ -104,7 +104,7 @@ export default function SignInPage() {
           {loading ? "Signing in..." : "Sign in"}
         </button>
 
-        <div className="flex justify-end">
+        {/* <div className="flex justify-end">
           <button
             type="button"
             className="cursor-pointer text-sm text-brand"
@@ -115,7 +115,7 @@ export default function SignInPage() {
           >
             Forgot password?
           </button>
-        </div>
+        </div> */}
       </form>
     </PageLayout>
   );
