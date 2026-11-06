@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { slugify } from "../utils/slug";
 import { request } from "../utils/api";
 import { MOVIE_ORDER_OPTIONS, MOVIE_SORT_OPTIONS, sortMovies } from "../utils/movieOrder";
@@ -41,7 +41,8 @@ export default function BrowsePage() {
   const [genre, setGenre] = useState(""); // "" means all genres
   const [sortBy, setSortBy] = useState(MOVIE_SORT_OPTIONS[0].value); // date unless changed
   const [order, setOrder] = useState("desc"); // newest first unless changed
-
+const [searchParams, setSearchParams] = useSearchParams();
+const featuredOnly = searchParams.get("filter") === "featured";
   // User search
   const [username, setUsername] = useState("");
   const [userError, setUserError] = useState("");
@@ -54,8 +55,12 @@ export default function BrowsePage() {
     try {
       const trimmed = title.trim();
       const url = trimmed
-        ? `/api/movies/search?title=${encodeURIComponent(trimmed)}`
-        : "/api/movies";
+  ? `/api/movies/search?title=${encodeURIComponent(trimmed)}`
+  : featuredOnly
+    ? "/api/movies/reviewed"
+    : "/api/movies";
+    console.log("featuredOnly:", featuredOnly);
+console.log("Movies URL:", url);
      const data = await request(url);
       
       setMovies(data);
@@ -74,8 +79,8 @@ export default function BrowsePage() {
 
   // Show every movie when the page first opens
   useEffect(() => {
-    loadMovies();
-  }, []);
+  loadMovies();
+}, [featuredOnly]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -121,8 +126,10 @@ export default function BrowsePage() {
 
   // Heading: "Movies (Genre)" normally, or the search wording after a search
   const genreText = genre || "All";
-  const heading = searchTerm
-    ? `Movie results with '${searchTerm}' (${genreText})`
+ const heading = searchTerm
+  ? `Movie results with '${searchTerm}' (${genreText})`
+  : featuredOnly
+    ? `Featured Movies (${genreText})`
     : `Movies (${genreText})`;
 
   // Only the movies belonging to the current page
@@ -213,7 +220,31 @@ export default function BrowsePage() {
       <h1 className="mt-8 text-left text-5xl leading-tight font-bold [overflow-wrap:anywhere]">
         {heading}
       </h1>
+<div className="mt-5 flex flex-wrap gap-3">
+  <button
+    type="button"
+    onClick={() => setSearchParams({})}
+    className={`rounded-lg px-5 py-2.5 font-semibold transition ${
+      !featuredOnly
+        ? "bg-brand text-white"
+        : "bg-surface text-muted hover:text-brand"
+    }`}
+  >
+    All Movies
+  </button>
 
+  <button
+    type="button"
+    onClick={() => setSearchParams({ filter: "featured" })}
+    className={`rounded-lg px-5 py-2.5 font-semibold transition ${
+      featuredOnly
+        ? "bg-brand text-white"
+        : "bg-surface text-muted hover:text-brand"
+    }`}
+  >
+    Featured Movies
+  </button>
+</div>
       {loading && <p className="mt-4 text-muted">Loading movies...</p>}
       {error && <p className="mt-4 text-danger-text">{error}</p>}
       {!loading && !error && sortedMovies.length === 0 && (

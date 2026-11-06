@@ -93,6 +93,111 @@ router.get('/search', async (req, res) => {
     });
   }
 });
+// GET /api/movies/featured - Get 4 movies with the most public reviews
+router.get('/featured', async (req, res) => {
+  try {
+    const movies = await Movie.aggregate([
+      {
+        $lookup: {
+          from: UserReview.collection.name,
+          let: { movieId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$movie_id', '$$movieId'] },
+                    { $eq: ['$isPrivate', false] }
+                  ]
+                }
+              }
+            },
+            { $count: 'count' }
+          ],
+          as: 'reviewStats'
+        }
+      },
+      {
+        $addFields: {
+          publicReviewCount: {
+            $ifNull: [
+              { $arrayElemAt: ['$reviewStats.count', 0] },
+              0
+            ]
+          }
+        }
+      },
+      {
+        $sort: {
+          publicReviewCount: -1,
+          title: 1
+        }
+      },
+      { $limit: 4 }
+    ]);
+
+    const formattedMovies = await Promise.all(
+      movies.map(formatMovie)
+    );
+
+    res.status(200).json(formattedMovies);
+  } catch (error) {
+    console.error('Error fetching featured movies:', error);
+    res.status(500).json({
+      message: 'Failed to fetch featured movies'
+    });
+  }
+});
+// GET /api/movies/reviewed - Get all movies with public reviews
+router.get('/reviewed', async (req, res) => {
+  try {
+    const movies = await Movie.aggregate([
+      {
+        $lookup: {
+          from: UserReview.collection.name,
+          let: { movieId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$movie_id', '$$movieId'] },
+                    { $eq: ['$isPrivate', false] }
+                  ]
+                }
+              }
+            },
+            { $count: 'count' }
+          ],
+          as: 'reviewStats'
+        }
+      },
+      {
+        $addFields: {
+          publicReviewCount: {
+            $ifNull: [
+              { $arrayElemAt: ['$reviewStats.count', 0] },
+              0
+            ]
+          }
+        }
+      },
+      { $match: { publicReviewCount: { $gt: 0 } } },
+      { $sort: { publicReviewCount: -1, title: 1 } }
+    ]);
+
+    const formattedMovies = await Promise.all(
+      movies.map(formatMovie)
+    );
+
+    res.status(200).json(formattedMovies);
+  } catch (error) {
+    console.error('Error fetching reviewed movies:', error);
+    res.status(500).json({
+      message: 'Failed to fetch reviewed movies'
+    });
+  }
+});
 
 // GET /api/movies/:id
 router.get('/:id', async (req, res) => {
