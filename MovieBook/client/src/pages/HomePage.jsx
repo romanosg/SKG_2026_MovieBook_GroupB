@@ -249,7 +249,7 @@ Find your next favorite film from our movie collection.            </p>
       </section>
 
       {/* FINAL SECTION */}
-      <section className="rounded-2xl border border-line bg-surface px-6 py-10 text-center">
+      <section className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-line bg-surface px-6 py-10 text-center">
         <h2 className="text-3xl font-bold">
           Ready to Explore the World of Cinema?
         </h2>
