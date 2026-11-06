@@ -89,13 +89,13 @@ export default function MoviePage() {
         let data;
         if (idToLoad) {
          try {
-  data = await request(`/api/movies/${idToLoad}`);
-} catch (err) {
-  if (err.status === 400 || err.status === 404) {
-    throw new Error("not-found");
-  }
-  throw new Error("failed");
-} 
+          data = await request(`/api/movies/${idToLoad}`);
+        } catch (err) {
+          if (err.status === 400 || err.status === 404) {
+            throw new Error("not-found");
+          }
+          throw new Error("failed");
+        } 
         } else {
           const movies = await request("/api/movies");
           data = movies.find((m) => slugify(m.title) === id.toLowerCase());
@@ -251,8 +251,6 @@ export default function MoviePage() {
         }),
       });
 
-      
-
       // 2. Automatically assign the movie as watched upon successful review submission
       try {
         await fetch("http://localhost:3000/api/watched-movies", {
@@ -381,63 +379,77 @@ export default function MoviePage() {
           </div>
         )}
 
-        {/* forma gia neo review - mono gia sindedemeno xristi */}
-        {movie && loggedUser && (
+        {/* review section: Form for logged-in users, appealing message box for guests */}
+        {movie && (
           <div className="mt-10">
-            <h2 className="label-brand mb-4 text-left text-lg">Write a review</h2>
-            <form
-              onSubmit={handleReviewSubmit}
-              className="rounded-[10px] bg-surface p-5 flex flex-col gap-4"
-            >
-              {/* epilogi asteria */}
-              <div className="field">
-                <span className="text-sm font-medium">Rating</span>
-                <div className="flex gap-1 mt-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <PickerStar
-                      key={star}
-                      index={star - 1}
-                      filled={formRating}
-                      hovered={formHover}
-                      onClick={() => setFormRating(star)}
-                      onMouseEnter={() => setFormHover(star)}
-                      onMouseLeave={() => setFormHover(null)}
+            {loggedUser ? (
+              <>
+                <h2 className="label-brand mb-4 text-left text-lg">Write a review</h2>
+                <form
+                  onSubmit={handleReviewSubmit}
+                  className="rounded-[10px] bg-surface p-5 flex flex-col gap-4"
+                >
+                  {/* epilogi asteria */}
+                  <div className="field">
+                    <span className="text-sm font-medium">Rating</span>
+                    <div className="flex gap-1 mt-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <PickerStar
+                          key={star}
+                          index={star - 1}
+                          filled={formRating}
+                          hovered={formHover}
+                          onClick={() => setFormRating(star)}
+                          onMouseEnter={() => setFormHover(star)}
+                          onMouseLeave={() => setFormHover(null)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* keimeno review */}
+                  <label className="field">
+                    <span className="text-sm font-medium">Review</span>
+                    <textarea
+                      className="input mt-1 min-h-[100px] resize-y"
+                      value={formText}
+                      onChange={(e) => setFormText(e.target.value)}
+                      maxLength={2000}
+                      placeholder="Write your thoughts about this movie..."
                     />
-                  ))}
-                </div>
+                    <span className="text-xs text-muted text-right">{formText.length}/2000</span>
+                  </label>
+
+                  {/* private checkbox */}
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={formPrivate}
+                      onChange={(e) => setFormPrivate(e.target.checked)}
+                      className="cursor-pointer"
+                    />
+                    Keep this review private
+                  </label>
+
+                  {formError && <span className="error">{formError}</span>}
+                  {formSuccess && <span className="text-success text-sm">Review submitted!</span>}
+
+                  <button className="btn" type="submit" disabled={formSubmitting}>
+                    {formSubmitting ? "Submitting..." : "Submit review"}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="rounded-[10px] border border-line bg-surface p-6 text-center shadow-sm">
+                <h2 className="text-base font-bold mb-2">Want to share your thoughts?</h2>
+                <p className="text-sm text-muted">
+                  You must be signed in to post a review and rate this movie.
+                </p>
+                <Link to="/sign-in" className="btn mt-4 inline-block px-5 py-2">
+                  Sign in to review
+                </Link>
               </div>
-
-              {/* keimeno review */}
-              <label className="field">
-                <span className="text-sm font-medium">Review</span>
-                <textarea
-                  className="input mt-1 min-h-[100px] resize-y"
-                  value={formText}
-                  onChange={(e) => setFormText(e.target.value)}
-                  maxLength={2000}
-                  placeholder="Write your thoughts about this movie..."
-                />
-                <span className="text-xs text-muted text-right">{formText.length}/2000</span>
-              </label>
-
-              {/* private checkbox */}
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input
-                  type="checkbox"
-                  checked={formPrivate}
-                  onChange={(e) => setFormPrivate(e.target.checked)}
-                  className="cursor-pointer"
-                />
-                Keep this review private
-              </label>
-
-              {formError && <span className="error">{formError}</span>}
-              {formSuccess && <span className="text-success text-sm">Review submitted!</span>}
-
-              <button className="btn" type="submit" disabled={formSubmitting}>
-                {formSubmitting ? "Submitting..." : "Submit review"}
-              </button>
-            </form>
+            )}
           </div>
         )}
 

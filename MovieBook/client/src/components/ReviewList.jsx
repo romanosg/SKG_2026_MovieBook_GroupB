@@ -193,7 +193,7 @@ function CommentItem({ comment, ownId, onCommentChanged }) {
   );
 }
 
-function ReviewCard({ review, isOwn, ownId, onChanged }) {
+function ReviewCard({ review, isOwn, ownId, isLoggedIn, onChanged }) {
   const [mode, setMode] = useState("view");
   const [text, setText] = useState(review.text);
   const [rating, setRating] = useState(review.rating);
@@ -386,7 +386,8 @@ function ReviewCard({ review, isOwn, ownId, onChanged }) {
           </div>
 
           <div className="flex items-center gap-4 ml-auto">
-            {isPublic && (
+            {/* Reply button only shown if the user is logged in */}
+            {isPublic && isLoggedIn && (
               <button
                 type="button"
                 className="cursor-pointer text-brand hover:underline font-semibold"
@@ -547,6 +548,7 @@ export default function ReviewList({ reviews, loggedUser, loading = false, onCha
   const [order, setOrder] = useState("desc");
 
   const ownId = loggedUser ? String(loggedUser.id ?? loggedUser._id) : null;
+  const isLoggedIn = Boolean(loggedUser);
   const { mine, others } = groupAndSort(reviews, ownId, sortBy, order);
   const shown = [...mine, ...others];
 
@@ -586,6 +588,7 @@ export default function ReviewList({ reviews, loggedUser, loading = false, onCha
                 review={review}
                 isOwn={ownId !== null && authorId(review) === ownId}
                 ownId={ownId}
+                isLoggedIn={isLoggedIn}
                 onChanged={onChanged}
               />
             ))}
