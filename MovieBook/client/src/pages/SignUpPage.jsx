@@ -23,6 +23,7 @@ const isValidBirthdate = (day, month, year) => {
   const d = Number(day);
   const m = Number(month);
   const y = Number(year);
+
   const date = new Date(y, m - 1, d);
 
   const isRealDate =
@@ -30,7 +31,19 @@ const isValidBirthdate = (day, month, year) => {
     date.getMonth() === m - 1 &&
     date.getDate() === d;
 
-  return isRealDate && y >= 1900 && date <= new Date();
+  if (!isRealDate) return false;
+
+  const today = new Date();
+  let age = today.getFullYear() - y;
+
+  if (
+    today.getMonth() < m - 1 ||
+    (today.getMonth() === m - 1 && today.getDate() < d)
+  ) {
+    age--;
+  }
+
+  return age >= 13 && age <= 120;
 };
 
 export default function SignUpPage() {

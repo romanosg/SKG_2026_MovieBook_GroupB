@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import PageLayout from "../components/PageLayout";
 import { request } from "../utils/api";
 import { slugify } from "../utils/slug";
+import { movieCache } from "../utils/movieCache";
 import logo from "../assets/AFJ_circle_logo_1.png";
 
 function MovieGrid({ movies, featured = false }) {
@@ -52,17 +53,41 @@ function MovieGrid({ movies, featured = false }) {
 }
 
 export default function HomePage() {
-  const [featuredMovies, setFeaturedMovies] = useState([]);
-  const [discoverMovies, setDiscoverMovies] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [featuredMovies, setFeaturedMovies] = useState(
+    movieCache.get("/api/movies/featured") || []
+  );
+
+  const [discoverMovies, setDiscoverMovies] = useState(() => {
+    const featured = movieCache.get("/api/movies/featured");
+    const allMovies = movieCache.get("/api/movies");
+
+    if (!featured || !allMovies) return [];
+
+    const featuredIds = new Set(
+      featured.map((movie) => movie._id)
+    );
+
+    return allMovies
+      .filter((movie) => !featuredIds.has(movie._id))
+      .slice(0, 4);
+  });
+
+  const [loading, setLoading] = useState(
+    !movieCache.has("/api/movies/featured") ||
+    !movieCache.has("/api/movies")
+  );
 
   useEffect(() => {
+    let active = true;
+
     const loadMovies = async () => {
       try {
         const [featuredData, allMoviesData] = await Promise.all([
           request("/api/movies/featured"),
           request("/api/movies"),
         ]);
+
+        if (!active) return;
 
         const featured = Array.isArray(featuredData)
           ? featuredData
@@ -72,25 +97,34 @@ export default function HomePage() {
           ? allMoviesData
           : [];
 
+        movieCache.set("/api/movies/featured", featured);
+        movieCache.set("/api/movies", allMovies);
+
         setFeaturedMovies(featured);
 
         const featuredIds = new Set(
           featured.map((movie) => movie._id)
         );
 
-        const discover = allMovies
-          .filter((movie) => !featuredIds.has(movie._id))
-          .slice(0, 4);
-
-        setDiscoverMovies(discover);
+        setDiscoverMovies(
+          allMovies
+            .filter((movie) => !featuredIds.has(movie._id))
+            .slice(0, 4)
+        );
       } catch (error) {
-        console.error("Error loading movies:", error);
+        console.error("Error refreshing movies:", error);
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
     loadMovies();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
@@ -124,6 +158,13 @@ export default function HomePage() {
                 className="rounded-md border border-brand px-6 py-3 font-semibold text-brand transition hover:bg-brand hover:text-on-btn"
               >
                 Join Us
+              </Link>
+
+              <Link
+                to="/sign-in"
+                className="rounded-md border border-line px-6 py-3 font-semibold text-soft transition hover:border-brand hover:text-brand"
+              >
+                Sign In
               </Link>
             </div>
           </div>
@@ -170,7 +211,8 @@ export default function HomePage() {
             <div className="mb-3 text-3xl">🎬</div>
             <h3 className="text-xl font-bold">Discover Movies</h3>
             <p className="mt-3 text-sm leading-6 text-soft">
-Find your next favorite film from our movie collection.            </p>
+              Find your next favorite film from our movie collection.
+            </p>
           </div>
 
           <div className="rounded-xl border border-line bg-surface p-6 text-center">
@@ -205,12 +247,12 @@ Find your next favorite film from our movie collection.            </p>
             </p>
           </div>
 
-        <Link
-  to="/browse?filter=featured"
-  className="font-semibold text-brand hover:underline"
->
-  View All Featured Movies →
-</Link>  
+          <Link
+            to="/browse?filter=featured"
+            className="font-semibold text-brand hover:underline"
+          >
+            View All Featured Movies →
+          </Link>
         </div>
 
         {loading ? (
@@ -260,10 +302,10 @@ Find your next favorite film from our movie collection.            </p>
         </p>
 
         <Link
-          to="/browse"
-          className="btn mt-7 inline-block px-7 py-3"
+          to="/sign-up"
+          className="btn mt-6 px-6 py-3"
         >
-          Start Exploring
+          Start Your Own Journal
         </Link>
       </section>
 

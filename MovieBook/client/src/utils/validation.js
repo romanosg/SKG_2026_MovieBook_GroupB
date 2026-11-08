@@ -4,8 +4,7 @@ export const isValidEmail = (value) =>
 
 // Username: 3-30 chars, letters/numbers/underscores
 export const isValidUsername = (value) =>
-  /^[A-Za-z0-9_]{3,30}$/.test(value.trim());
-
+  /^[A-Za-z][A-Za-z0-9_]{2,29}$/.test(value.trim());
 // The three password rules
 export const getPasswordRules = (value) => [
   { label: "At least 7 characters", met: value.length >= 7 },

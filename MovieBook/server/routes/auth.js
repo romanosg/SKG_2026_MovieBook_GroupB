@@ -32,22 +32,38 @@ router.post('/register', async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedUsername = username.trim();
 
-    if (normalizedUsername.length < 3 || normalizedUsername.length > 30) {
-      return res.status(400).json({
-        message: 'Username must be between 3 and 30 characters.',
-      });
-    }
+    if (!/^[A-Za-z][A-Za-z0-9_]{2,29}$/.test(normalizedUsername)) {
+  return res.status(400).json({
+    message:
+      'Username must be 3–30 characters, start with a letter, and use only letters, numbers or underscores.',
+  });
+}
 
     const parsedDateOfBirth = new Date(dateOfBirth);
 
-    if (
-      Number.isNaN(parsedDateOfBirth.getTime()) ||
-      parsedDateOfBirth > new Date()
-    ) {
-      return res.status(400).json({
-        message: 'Date of birth must be a valid date in the past.',
-      });
-    }
+if (Number.isNaN(parsedDateOfBirth.getTime())) {
+  return res.status(400).json({
+    message: 'Date of birth must be a valid date.',
+  });
+}
+
+const today = new Date();
+
+let age = today.getFullYear() - parsedDateOfBirth.getFullYear();
+
+if (
+  today.getMonth() < parsedDateOfBirth.getMonth() ||
+  (today.getMonth() === parsedDateOfBirth.getMonth() &&
+    today.getDate() < parsedDateOfBirth.getDate())
+) {
+  age--;
+}
+
+if (age < 13 || age > 120) {
+  return res.status(400).json({
+    message: 'You must be between 13 and 120 years old.',
+  });
+}
 
     const existingUser = await User.findOne({
       $or: [
@@ -67,7 +83,15 @@ router.post('/register', async (req, res) => {
         message: 'This username is already taken.',
       });
     }
-
+if (
+  password.length < 7 ||
+  !/[A-Z]/.test(password) ||
+  !/[0-9]|[^A-Za-z0-9\s]/.test(password)
+) {
+  return res.status(400).json({
+    message: 'Password does not meet the requirements.',
+  });
+}
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({

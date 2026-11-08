@@ -8,21 +8,13 @@ import Pager from "../components/Pager";
 import SelectControl from "../components/SelectControl";
 import logo from "../assets/AFJ_circle_logo_1.png";
 
-// Maximum number of movies shown on one page (change this to show more or fewer)
 const MOVIES_PER_PAGE = 8;
-
-// How many page numbers to show before and after the current page
 const PAGES_BEFORE_CURRENT = 3;
 const PAGES_AFTER_CURRENT = 5;
-
-// Jump size X: besides the pages around the current one, the page bar also shows the page
-// X away in each direction (e.g. on page 12 with X = 10: pages 2 and 22). See utils/paging.js.
-// X must be bigger than the number of page buttons shown at once; a too small value is raised
-// automatically.
 const PAGE_JUMP = 10;
 
-// The movie's picture comes from its poster_url field
-// (the picture's width is --poster-width in App.css)
+// Temporary cache for movie results
+import { movieCache } from "../utils/movieCache";
 const getImageUrl = (movie) => movie.poster_url || "";
 
 export default function BrowsePage() {
@@ -30,48 +22,74 @@ export default function BrowsePage() {
 
   // Movie search
   const [query, setQuery] = useState("");
-  const [movies, setMovies] = useState([]); // current results (all movies or search results)
-  const [allMovies, setAllMovies] = useState([]); // every movie, used for the genre list
-  const [searchTerm, setSearchTerm] = useState(""); // the search that was actually submitted
+  const [movies, setMovies] = useState([]);
+  const [allMovies, setAllMovies] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   // Filters and order
   const [page, setPage] = useState(1);
-  const [genre, setGenre] = useState(""); // "" means all genres
-  const [sortBy, setSortBy] = useState(MOVIE_SORT_OPTIONS[0].value); // date unless changed
-  const [order, setOrder] = useState("desc"); // newest first unless changed
-const [searchParams, setSearchParams] = useSearchParams();
-const featuredOnly = searchParams.get("filter") === "featured";
+  const [genre, setGenre] = useState("");
+  const [sortBy, setSortBy] = useState(MOVIE_SORT_OPTIONS[0].value);
+  const [order, setOrder] = useState("desc");
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const featuredOnly = searchParams.get("filter") === "featured";
+
   // User search
   const [username, setUsername] = useState("");
   const [userError, setUserError] = useState("");
   const [userSearching, setUserSearching] = useState(false);
 
-  // No title: GET /api/movies (all movies). With a title: GET /api/movies/search?title=...
+  // Load movies using cached results when available
   const loadMovies = async (title = "") => {
-    setLoading(true);
+    const trimmed = title.trim();
+
+    const url = trimmed
+      ? `/api/movies/search?title=${encodeURIComponent(trimmed)}`
+      : featuredOnly
+        ? "/api/movies/reviewed"
+        : "/api/movies";
+
+    const cachedMovies = movieCache.get(url);
+
+    if (cachedMovies) {
+      setMovies(cachedMovies);
+      setSearchTerm(trimmed);
+
+      if (!trimmed) {
+        setAllMovies(cachedMovies);
+      }
+
+      setPage(1);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     setError("");
+
     try {
-      const trimmed = title.trim();
-      const url = trimmed
-  ? `/api/movies/search?title=${encodeURIComponent(trimmed)}`
-  : featuredOnly
-    ? "/api/movies/reviewed"
-    : "/api/movies";
-    console.log("featuredOnly:", featuredOnly);
-console.log("Movies URL:", url);
-     const data = await request(url);
-      
+      const data = await request(url);
+
+      movieCache.set(url, data);
+
       setMovies(data);
       setSearchTerm(trimmed);
-      if (!trimmed) setAllMovies(data); // an empty search returns every movie
-      setPage(1); // new results start on the first page
-      // the chosen genre is kept, so an empty search shows all movies of that genre
+
+      if (!trimmed) {
+        setAllMovies(data);
+      }
+
+      setPage(1);
     } catch (err) {
       console.error("Error loading movies:", err);
-      setMovies([]);
-      setError("Could not load movies. Is the server running?");
+
+      if (!cachedMovies) {
+        setMovies([]);
+        setError("Could not load movies. Is the server running?");
+      }
     } finally {
       setLoading(false);
     }
@@ -79,18 +97,20 @@ console.log("Movies URL:", url);
 
   // Show every movie when the page first opens
   useEffect(() => {
-  loadMovies();
-}, [featuredOnly]);
+    loadMovies();
+  }, [featuredOnly]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    loadMovies(query); // an empty search shows all movies again
+    loadMovies(query);
   };
 
-  // Finds a user by username (upper/lower case doesn't matter) and opens their profile
+  // Find a user by username and open their profile
   const handleUserSearch = async (e) => {
     e.preventDefault();
+
     const typed = username.trim();
+
     if (!typed) {
       setUserError("Type a username to search for.");
       return;
@@ -98,9 +118,12 @@ console.log("Movies URL:", url);
 
     setUserSearching(true);
     setUserError("");
+
     try {
-      const data = await request(`/api/user/user-info?username=${encodeURIComponent(typed)}`);
-      // the server answers with the username as it was registered, so the link uses that
+      const data = await request(
+        `/api/user/user-info?username=${encodeURIComponent(typed)}`
+      );
+
       navigate(`/profile?username=${encodeURIComponent(data.user.username)}`);
     } catch (err) {
       setUserError(
@@ -115,31 +138,36 @@ console.log("Movies URL:", url);
 
   // Every genre that exists, for the dropdown
   const genres = [...new Set(allMovies.flatMap((movie) => movie.genre || []))].sort();
-  const genreOptions = [{ value: "", label: "All" }, ...genres.map((g) => ({ value: g, label: g }))];
 
-  // Filter by the chosen genre, then put the movies in the chosen order
+  const genreOptions = [
+    { value: "", label: "All" },
+    ...genres.map((g) => ({ value: g, label: g })),
+  ];
+
+  // Filter and sort movies
   const sortedMovies = sortMovies(
     movies.filter((movie) => !genre || (movie.genre || []).includes(genre)),
     sortBy,
     order
   );
 
-  // Heading: "Movies (Genre)" normally, or the search wording after a search
+  // Page heading
   const genreText = genre || "All";
- const heading = searchTerm
-  ? `Movie results with '${searchTerm}' (${genreText})`
-  : featuredOnly
-    ? `Featured Movies (${genreText})`
-    : `Movies (${genreText})`;
 
-  // Only the movies belonging to the current page
+  const heading = searchTerm
+    ? `Movie results with '${searchTerm}' (${genreText})`
+    : featuredOnly
+      ? `Featured Movies (${genreText})`
+      : `Movies (${genreText})`;
+
+  // Movies belonging to the current page
   const totalPages = Math.ceil(sortedMovies.length / MOVIES_PER_PAGE);
   const firstIndex = (page - 1) * MOVIES_PER_PAGE;
   const visibleMovies = sortedMovies.slice(firstIndex, firstIndex + MOVIES_PER_PAGE);
 
   return (
     <PageLayout page="browse">
-      {/* Logo on the left; the searches and filters centered in the space that remains */}
+      {/* Logo and search controls */}
       <div className="flex items-center gap-6">
         <div className="relative aspect-square w-[clamp(120px,25vw,280px)] shrink-0">
           <img src={logo} alt="AFJ logo" className="absolute inset-0 size-full object-contain" />
@@ -159,16 +187,23 @@ console.log("Movies URL:", url);
                   setUserError("");
                 }}
               />
-              <button className="btn h-11 shrink-0 px-5 py-0" type="submit" disabled={userSearching}>
+
+              <button
+                className="btn h-11 shrink-0 px-5 py-0"
+                type="submit"
+                disabled={userSearching}
+              >
                 {userSearching ? "Searching..." : "Find user"}
               </button>
             </form>
+
             {userError && (
               <p className="error mt-1.5" role="alert">
                 {userError}
               </p>
             )}
           </div>
+
           <form className="flex w-full max-w-[600px] gap-2" onSubmit={handleSubmit}>
             <input
               className="input h-11 min-w-0 flex-1"
@@ -178,10 +213,12 @@ console.log("Movies URL:", url);
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
+
             <button className="btn h-11 shrink-0 px-5 py-0" type="submit">
               Search
             </button>
           </form>
+
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
             <SelectControl
               id="genre-select"
@@ -193,6 +230,7 @@ console.log("Movies URL:", url);
               }}
               options={genreOptions}
             />
+
             <SelectControl
               id="browse-sort"
               label="Sort by"
@@ -203,6 +241,7 @@ console.log("Movies URL:", url);
               }}
               options={MOVIE_SORT_OPTIONS}
             />
+
             <SelectControl
               id="browse-order"
               label="Order"
@@ -220,51 +259,52 @@ console.log("Movies URL:", url);
       <h1 className="mt-8 text-left text-5xl leading-tight font-bold [overflow-wrap:anywhere]">
         {heading}
       </h1>
-<div className="mt-5 flex flex-wrap gap-3">
-  <button
-    type="button"
-    onClick={() => setSearchParams({})}
-    className={`rounded-lg px-5 py-2.5 font-semibold transition ${
-      !featuredOnly
-        ? "bg-brand text-white"
-        : "bg-surface text-muted hover:text-brand"
-    }`}
-  >
-    All Movies
-  </button>
 
-  <button
-    type="button"
-    onClick={() => setSearchParams({ filter: "featured" })}
-    className={`rounded-lg px-5 py-2.5 font-semibold transition ${
-      featuredOnly
-        ? "bg-brand text-white"
-        : "bg-surface text-muted hover:text-brand"
-    }`}
-  >
-    Featured Movies
-  </button>
-</div>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={() => setSearchParams({})}
+          className={`rounded-lg px-5 py-2.5 font-semibold transition ${
+            !featuredOnly
+              ? "bg-brand text-white"
+              : "bg-surface text-muted hover:text-brand"
+          }`}
+        >
+          All Movies
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSearchParams({ filter: "featured" })}
+          className={`rounded-lg px-5 py-2.5 font-semibold transition ${
+            featuredOnly
+              ? "bg-brand text-white"
+              : "bg-surface text-muted hover:text-brand"
+          }`}
+        >
+          Featured Movies
+        </button>
+      </div>
+
       {loading && <p className="mt-4 text-muted">Loading movies...</p>}
       {error && <p className="mt-4 text-danger-text">{error}</p>}
+
       {!loading && !error && sortedMovies.length === 0 && (
         <p className="mt-4 text-muted">No movies found.</p>
       )}
 
-      {/* Movie cards in fixed-width columns: every row starts at the same left edge,
-          while the whole block stays centered so left and right space match */}
       {!loading && visibleMovies.length > 0 && (
         <ul className="mt-4 grid grid-cols-[repeat(auto-fill,var(--poster-width))] items-start justify-center gap-6 p-0">
           {visibleMovies.map((movie) => {
             const imageUrl = getImageUrl(movie);
-            // the address shows the movie's name, e.g. /movies/the-dark-knight
-            // (falls back to the id if the title has no letters or digits)
             const moviePath = `/movies/${slugify(movie.title) || movie._id}`;
-            // the id travels with the click (not in the address) so the movie loads directly
             const linkState = { movieId: movie._id };
 
             return (
-              <li key={movie._id} className="w-(--poster-width) text-center flex flex-col items-center">
+              <li
+                key={movie._id}
+                className="w-(--poster-width) text-center flex flex-col items-center"
+              >
                 <Link
                   to={moviePath}
                   state={linkState}
@@ -283,9 +323,13 @@ console.log("Movies URL:", url);
                     </div>
                   )}
                 </Link>
+
                 <p className="mt-2 text-base font-bold [overflow-wrap:anywhere]">
-                  {/* the title is underlined only while hovered */}
-                  <Link to={moviePath} state={linkState} className="cursor-pointer hover:underline">
+                  <Link
+                    to={moviePath}
+                    state={linkState}
+                    className="cursor-pointer hover:underline"
+                  >
                     {movie.title}
                   </Link>
                 </p>
