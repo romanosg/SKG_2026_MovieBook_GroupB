@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { slugify } from "../utils/slug";
@@ -7,22 +8,30 @@ import ReviewList from "../components/ReviewList";
 import Pager from "../components/Pager";
 import { request } from "../utils/api";
 import { getStats } from "../utils/movieReviews";
+import { movieCache } from "../utils/movieCache";
 
 // 15 reviews per page
 const REVIEWS_PER_PAGE = 15;
 
-// Page bar settings (matching browse and review pages)
+// Page bar settings
 const PAGES_BEFORE_CURRENT = 3;
 const PAGES_AFTER_CURRENT = 5;
 const PAGE_JUMP = 10;
 
-// star path for the interactive picker in the review form
+// Star path for the interactive picker
 const STAR_PATH =
   "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
 
-// clickable star for the review form (not the display StarRating component)
-function PickerStar({ filled, hovered, onClick, onMouseEnter, onMouseLeave, index }) {
+function PickerStar({
+  filled,
+  hovered,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+  index,
+}) {
   const active = hovered != null ? index < hovered : index < filled;
+
   return (
     <button
       type="button"
@@ -43,27 +52,33 @@ function PickerStar({ filled, hovered, onClick, onMouseEnter, onMouseLeave, inde
 }
 
 export default function MoviePage() {
-  const { id } = useParams(); // the movie's name (or old id) from the address /movies/:id
+  const { id } = useParams();
   const location = useLocation();
-  const movieId = location.state?.movieId; // set when we arrive by clicking a movie
+  const movieId = location.state?.movieId;
+
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [reviews, setReviews] = useState([]);
   const [reviewsLoaded, setReviewsLoaded] = useState(false);
+
   const [isWatched, setIsWatched] = useState(false);
   const [watchedStatusLoading, setWatchedStatusLoading] = useState(false);
   const [watchedSubmitting, setWatchedSubmitting] = useState(false);
   const [watchedError, setWatchedError] = useState("");
+
   const [page, setPage] = useState(1);
 
-  // diabazoume ton xristi apo localStorage
   const [loggedUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("user")); }
-    catch { return null; }
+    try {
+      return JSON.parse(localStorage.getItem("user"));
+    } catch {
+      return null;
+    }
   });
 
-  // katastasi tis formas review
+  // Review form state
   const [formRating, setFormRating] = useState(0);
   const [formHover, setFormHover] = useState(null);
   const [formText, setFormText] = useState("");
@@ -72,56 +87,89 @@ export default function MoviePage() {
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState(false);
 
-  // ref gia na kanoume refetch ta reviews meta apo submit
   const loadReviewsRef = useRef(null);
 
+  // Load movie from cache first, then refresh from the server.
   useEffect(() => {
-    let cancelled = false; // ignore the answer if we've already left this movie
+    let cancelled = false;
 
     const loadMovie = async () => {
-      setLoading(true);
       setError("");
-      setMovie(null);
-      try {
-        const isDatabaseId = /^[a-f0-9]{24}$/i.test(id);
-        const idToLoad = movieId || (isDatabaseId ? id : null);
 
-        let data;
+      const isDatabaseId = /^[a-f0-9]{24}$/i.test(id);
+      const idToLoad = movieId || (isDatabaseId ? id : null);
+
+      const cachedLists = [
+        movieCache.get("/api/movies"),
+        movieCache.get("/api/movies/featured"),
+        movieCache.get("/api/movies/reviewed"),
+      ].filter(Array.isArray);
+
+      let cachedMovie = null;
+
+      for (const list of cachedLists) {
+        cachedMovie = list.find((item) =>
+          idToLoad
+            ? String(item._id) === String(idToLoad)
+            : slugify(item.title) === id.toLowerCase()
+        );
+
+        if (cachedMovie) break;
+      }
+
+      if (cachedMovie) {
+        setMovie(cachedMovie);
+        setLoading(false);
+      } else {
+        setMovie(null);
+        setLoading(true);
+      }
+
+      try {
+        let freshMovie;
+
         if (idToLoad) {
-         try {
-          data = await request(`/api/movies/${idToLoad}`);
-        } catch (err) {
-          if (err.status === 400 || err.status === 404) {
-            throw new Error("not-found");
-          }
-          throw new Error("failed");
-        } 
+          freshMovie = await request(`/api/movies/${idToLoad}`);
         } else {
           const movies = await request("/api/movies");
-          data = movies.find((m) => slugify(m.title) === id.toLowerCase());
-          if (!data) throw new Error("not-found");
+
+          freshMovie = movies.find(
+            (item) => slugify(item.title) === id.toLowerCase()
+          );
         }
-        if (!cancelled) setMovie(data);
-      } catch (err) {
+
+        if (!freshMovie) {
+          throw new Error("not-found");
+        }
+
         if (!cancelled) {
+          setMovie(freshMovie);
+        }
+      } catch (err) {
+        if (!cancelled && !cachedMovie) {
           setError(
-            err.message === "not-found"
+            err.message === "not-found" ||
+              err.status === 404 ||
+              err.status === 400
               ? "Movie not found."
               : "Could not load this movie. Is the server running?"
           );
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     loadMovie();
+
     return () => {
       cancelled = true;
     };
   }, [id, movieId]);
 
-  // Check whether the logged-in user has already marked this movie as watched.
+  // Check whether the logged-in user has watched this movie.
   useEffect(() => {
     if (!movie || !loggedUser) {
       setIsWatched(false);
@@ -130,38 +178,62 @@ export default function MoviePage() {
     }
 
     let cancelled = false;
+
     const userId = loggedUser._id || loggedUser.id || loggedUser.userId;
 
     const loadWatchedStatus = async () => {
       setWatchedStatusLoading(true);
       setWatchedError("");
+
       try {
-        const response = await fetch(`/api/watched-movies/movie/${movie._id}`);
-        if (!response.ok) throw new Error("Could not check watched status.");
+        const response = await fetch(
+          `/api/watched-movies/movie/${movie._id}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Could not check watched status.");
+        }
+
         const entries = await response.json();
+
         const watched = entries.some((entry) => {
           const entryUserId = entry.user_id?._id || entry.user_id;
           return String(entryUserId) === String(userId);
         });
-        if (!cancelled) setIsWatched(watched);
+
+        if (!cancelled) {
+          setIsWatched(watched);
+        }
       } catch (err) {
-        if (!cancelled) setWatchedError(err.message || "Could not check watched status.");
+        if (!cancelled) {
+          setWatchedError(
+            err.message || "Could not check watched status."
+          );
+        }
       } finally {
-        if (!cancelled) setWatchedStatusLoading(false);
+        if (!cancelled) {
+          setWatchedStatusLoading(false);
+        }
       }
     };
 
     loadWatchedStatus();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [movie, loggedUser]);
 
+  // Mark movie as watched.
   const handleMarkAsWatched = async () => {
     if (!movie || !loggedUser || watchedSubmitting || isWatched) return;
 
     setWatchedSubmitting(true);
     setWatchedError("");
+
     try {
       const token = localStorage.getItem("token");
+
       const response = await fetch("/api/watched-movies", {
         method: "POST",
         headers: {
@@ -170,43 +242,70 @@ export default function MoviePage() {
         },
         body: JSON.stringify({ movie_id: movie._id }),
       });
+
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Could not mark this movie as watched.");
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Could not mark this movie as watched."
+        );
+      }
+
       setIsWatched(true);
     } catch (err) {
-      setWatchedError(err.message || "Could not connect to the server.");
+      setWatchedError(
+        err.message || "Could not connect to the server."
+      );
     } finally {
       setWatchedSubmitting(false);
     }
   };
 
-  // fetch reviews otan fortothei i tenia
+  // Load public and private reviews in parallel.
   useEffect(() => {
     if (!movie) return;
+
     let cancelled = false;
 
     const loadReviews = async () => {
       try {
-        const isThisMovie = (r) => String(r.movie_id?._id ?? r.movie_id) === String(movie._id);
+        const isThisMovie = (review) =>
+          String(review.movie_id?._id ?? review.movie_id) ===
+          String(movie._id);
 
-        const publicList = await request(`/api/user-reviews/public?movie_id=${movie._id}`);
-        const found = publicList.filter(isThisMovie);
+        const publicPromise = request(
+          `/api/user-reviews/public?movie_id=${movie._id}`
+        );
 
-        if (loggedUser) {
-          try {
-            const privateList = await request("/api/user-reviews/private", { auth: true });
-            found.push(...privateList.filter(isThisMovie));
-          } catch {}
-        }
+        const privatePromise = loggedUser
+          ? request("/api/user-reviews/private", { auth: true }).catch(
+              (err) => {
+                console.warn("Could not load private reviews:", err);
+                return [];
+              }
+            )
+          : Promise.resolve([]);
+
+        const [publicList, privateList] = await Promise.all([
+          publicPromise,
+          privatePromise,
+        ]);
+
+        const found = [
+          ...publicList.filter(isThisMovie),
+          ...privateList.filter(isThisMovie),
+        ];
 
         if (!cancelled) {
           setReviews(found);
-          setPage(1); // reset to page 1 on load/reload
+          setPage(1);
         }
       } catch (err) {
         console.error("Could not load the reviews:", err);
       } finally {
-        if (!cancelled) setReviewsLoaded(true);
+        if (!cancelled) {
+          setReviewsLoaded(true);
+        }
       }
     };
 
@@ -218,16 +317,16 @@ export default function MoviePage() {
     };
   }, [movie, loggedUser]);
 
-  // apostoli tou review (kai ayto-anathesh stin listawatched movies)
+  // Submit review and automatically mark movie as watched.
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
     setFormError("");
 
-    // Front-end validation prevents submission and watched assignment if invalid
     if (formRating === 0) {
       setFormError("Please select a star rating.");
       return;
     }
+
     if (!formText.trim()) {
       setFormError("Please write something in your review.");
       return;
@@ -237,7 +336,7 @@ export default function MoviePage() {
     setFormSubmitting(true);
 
     try {
-      const res = await fetch("http://localhost:3000/api/user-reviews", {
+      const res = await fetch("/api/user-reviews", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -251,9 +350,15 @@ export default function MoviePage() {
         }),
       });
 
-      // 2. Automatically assign the movie as watched upon successful review submission
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Could not submit review.");
+      }
+
+      // Automatically assign the movie as watched.
       try {
-        await fetch("http://localhost:3000/api/watched-movies", {
+        const watchedResponse = await fetch("/api/watched-movies", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -261,7 +366,10 @@ export default function MoviePage() {
           },
           body: JSON.stringify({ movie_id: movie._id }),
         });
-        setIsWatched(true);
+
+        if (watchedResponse.ok) {
+          setIsWatched(true);
+        }
       } catch (watchedErr) {
         console.warn("Auto watched assignment notice:", watchedErr);
       }
@@ -270,23 +378,28 @@ export default function MoviePage() {
       setFormText("");
       setFormPrivate(false);
       setFormSuccess(true);
+
       setTimeout(() => setFormSuccess(false), 3000);
+
       loadReviewsRef.current?.();
-    } catch {
-      setFormError("Could not connect to the server.");
+    } catch (err) {
+      setFormError(err.message || "Could not connect to the server.");
     } finally {
       setFormSubmitting(false);
     }
   };
 
-  // The movie's rating and review count are worked out from its public reviews
+  // Calculate public review statistics.
   const { count: reviewCount, average: averageRating } = getStats(reviews);
 
-  // Pagination slicing for reviews
+  // Reviews pagination.
   const totalPages = Math.ceil(reviews.length / REVIEWS_PER_PAGE);
   const currentPage = Math.min(page, Math.max(1, totalPages));
   const firstIndex = (currentPage - 1) * REVIEWS_PER_PAGE;
-  const pageReviews = reviews.slice(firstIndex, firstIndex + REVIEWS_PER_PAGE);
+  const pageReviews = reviews.slice(
+    firstIndex,
+    firstIndex + REVIEWS_PER_PAGE
+  );
 
   return (
     <PageLayout page="movie">
@@ -301,24 +414,28 @@ export default function MoviePage() {
         {movie && (
           <div className="flex flex-wrap items-start gap-8">
             <div className="w-[min(100%,320px)] shrink-0">
-            {movie.poster_url ? (
-              <img
-                src={movie.poster_url}
-                alt={`${movie.title} poster`}
-                className="block h-auto w-[min(100%,320px)] rounded-[10px] bg-surface"
-              />
-            ) : (
-              <div className="flex aspect-[2/3] w-[min(100%,320px)] items-center justify-center rounded-[10px] bg-surface text-muted">
-                No image
-              </div>
-            )}
+              {movie.poster_url ? (
+                <img
+                  src={movie.poster_url}
+                  alt={`${movie.title} poster`}
+                  className="block h-auto w-[min(100%,320px)] rounded-[10px] bg-surface"
+                />
+              ) : (
+                <div className="flex aspect-[2/3] w-[min(100%,320px)] items-center justify-center rounded-[10px] bg-surface text-muted">
+                  No image
+                </div>
+              )}
 
               {loggedUser && (
                 <div className="mt-3">
                   <button
                     type="button"
                     onClick={handleMarkAsWatched}
-                    disabled={isWatched || watchedStatusLoading || watchedSubmitting}
+                    disabled={
+                      isWatched ||
+                      watchedStatusLoading ||
+                      watchedSubmitting
+                    }
                     className="btn w-full"
                   >
                     {watchedStatusLoading
@@ -329,36 +446,54 @@ export default function MoviePage() {
                           ? "Watched ✓"
                           : "Mark as watched"}
                   </button>
+
                   {watchedError && (
-                    <p className="mt-2 text-sm text-danger-text" role="alert">{watchedError}</p>
+                    <p
+                      className="mt-2 text-sm text-danger-text"
+                      role="alert"
+                    >
+                      {watchedError}
+                    </p>
                   )}
                 </div>
               )}
             </div>
 
             <div className="min-w-[260px] flex-1">
-              <h1 className="m-0 text-[40px] leading-[1.15] font-bold normal-case">{movie.title}</h1>
+              <h1 className="m-0 text-[40px] leading-[1.15] font-bold normal-case">
+                {movie.title}
+              </h1>
+
               <p className="mt-1.5 text-lg text-muted">{movie.year}</p>
 
               {movie.genre?.length > 0 && (
-                <ul className="mt-5 flex flex-wrap gap-2 p-0" aria-label="Genres">
-                  {movie.genre.map((g) => (
+                <ul
+                  className="mt-5 flex flex-wrap gap-2 p-0"
+                  aria-label="Genres"
+                >
+                  {movie.genre.map((genre) => (
                     <li
-                      key={g}
+                      key={genre}
                       className="rounded-full border border-brand px-3.5 py-1 text-[13px] text-brand"
                     >
-                      {g}
+                      {genre}
                     </li>
                   ))}
                 </ul>
               )}
 
-              <h2 className="label-brand mt-7 mb-1.5 text-center">Director</h2>
+              <h2 className="label-brand mt-7 mb-1.5 text-center">
+                Director
+              </h2>
+
               <p className="m-0 text-center text-base leading-[1.6] whitespace-pre-wrap">
                 {movie.director}
               </p>
 
-              <h2 className="label-brand mt-7 mb-1.5 text-left">Description</h2>
+              <h2 className="label-brand mt-7 mb-1.5 text-left">
+                Description
+              </h2>
+
               <p className="m-0 text-left text-base leading-[1.6] whitespace-pre-wrap">
                 {movie.description}
               </p>
@@ -367,8 +502,10 @@ export default function MoviePage() {
                 {reviewsLoaded ? (
                   <>
                     <span className="text-base">
-                      {reviewCount} public {reviewCount === 1 ? "review" : "reviews"}
+                      {reviewCount} public{" "}
+                      {reviewCount === 1 ? "review" : "reviews"}
                     </span>
+
                     <StarRating rating={averageRating} size={66} />
                   </>
                 ) : (
@@ -379,19 +516,22 @@ export default function MoviePage() {
           </div>
         )}
 
-        {/* review section: Form for logged-in users, appealing message box for guests */}
+        {/* Review section */}
         {movie && (
           <div className="mt-10">
             {loggedUser ? (
               <>
-                <h2 className="label-brand mb-4 text-left text-lg">Write a review</h2>
+                <h2 className="label-brand mb-4 text-left text-lg">
+                  Write a review
+                </h2>
+
                 <form
                   onSubmit={handleReviewSubmit}
                   className="rounded-[10px] bg-surface p-5 flex flex-col gap-4"
                 >
-                  {/* epilogi asteria */}
                   <div className="field">
                     <span className="text-sm font-medium">Rating</span>
+
                     <div className="flex gap-1 mt-1">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <PickerStar
@@ -407,9 +547,9 @@ export default function MoviePage() {
                     </div>
                   </div>
 
-                  {/* keimeno review */}
                   <label className="field">
                     <span className="text-sm font-medium">Review</span>
+
                     <textarea
                       className="input mt-1 min-h-[100px] resize-y"
                       value={formText}
@@ -417,10 +557,12 @@ export default function MoviePage() {
                       maxLength={2000}
                       placeholder="Write your thoughts about this movie..."
                     />
-                    <span className="text-xs text-muted text-right">{formText.length}/2000</span>
+
+                    <span className="text-xs text-muted text-right">
+                      {formText.length}/2000
+                    </span>
                   </label>
 
-                  {/* private checkbox */}
                   <label className="flex items-center gap-2 cursor-pointer text-sm">
                     <input
                       type="checkbox"
@@ -431,21 +573,39 @@ export default function MoviePage() {
                     Keep this review private
                   </label>
 
-                  {formError && <span className="error">{formError}</span>}
-                  {formSuccess && <span className="text-success text-sm">Review submitted!</span>}
+                  {formError && (
+                    <span className="error">{formError}</span>
+                  )}
 
-                  <button className="btn" type="submit" disabled={formSubmitting}>
+                  {formSuccess && (
+                    <span className="text-success text-sm">
+                      Review submitted!
+                    </span>
+                  )}
+
+                  <button
+                    className="btn"
+                    type="submit"
+                    disabled={formSubmitting}
+                  >
                     {formSubmitting ? "Submitting..." : "Submit review"}
                   </button>
                 </form>
               </>
             ) : (
               <div className="rounded-[10px] border border-line bg-surface p-6 text-center shadow-sm">
-                <h2 className="text-base font-bold mb-2">Want to share your thoughts?</h2>
+                <h2 className="text-base font-bold mb-2">
+                  Want to share your thoughts?
+                </h2>
+
                 <p className="text-sm text-muted">
                   You must be signed in to post a review and rate this movie.
                 </p>
-                <Link to="/sign-in" className="btn mt-4 inline-block px-5 py-2">
+
+                <Link
+                  to="/sign-in"
+                  className="btn mt-4 inline-block px-5 py-2"
+                >
                   Sign in to review
                 </Link>
               </div>
@@ -453,7 +613,6 @@ export default function MoviePage() {
           </div>
         )}
 
-        {/* ola ta public reviews (kai ta dika tou xristi prwta), me filtra kai pager */}
         {movie && (
           <>
             <ReviewList
