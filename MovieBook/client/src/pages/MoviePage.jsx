@@ -186,15 +186,9 @@ export default function MoviePage() {
       setWatchedError("");
 
       try {
-        const response = await fetch(
+        const entries = await request(
           `/api/watched-movies/movie/${movie._id}`
         );
-
-        if (!response.ok) {
-          throw new Error("Could not check watched status.");
-        }
-
-        const entries = await response.json();
 
         const watched = entries.some((entry) => {
           const entryUserId = entry.user_id?._id || entry.user_id;
@@ -232,24 +226,11 @@ export default function MoviePage() {
     setWatchedError("");
 
     try {
-      const token = localStorage.getItem("token");
-
-      const response = await fetch("/api/watched-movies", {
+      await request("/api/watched-movies", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ movie_id: movie._id }),
+        body: { movie_id: movie._id },
+        auth: true,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Could not mark this movie as watched."
-        );
-      }
 
       setIsWatched(true);
     } catch (err) {
@@ -332,44 +313,29 @@ export default function MoviePage() {
       return;
     }
 
-    const token = localStorage.getItem("token");
     setFormSubmitting(true);
 
     try {
-      const res = await fetch("/api/user-reviews", {
+      await request("/api/user-reviews", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+        body: {
           movie_id: movie._id,
           rating: formRating,
           text: formText.trim(),
           isPrivate: formPrivate,
-        }),
+        },
+        auth: true,
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Could not submit review.");
-      }
 
       // Automatically assign the movie as watched.
       try {
-        const watchedResponse = await fetch("/api/watched-movies", {
+        await request("/api/watched-movies", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ movie_id: movie._id }),
+          body: { movie_id: movie._id },
+          auth: true,
         });
 
-        if (watchedResponse.ok) {
-          setIsWatched(true);
-        }
+        setIsWatched(true);
       } catch (watchedErr) {
         console.warn("Auto watched assignment notice:", watchedErr);
       }
